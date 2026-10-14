@@ -55,28 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const orderForm = document.querySelector('.booking-form');
     if (orderForm && serviceSelect) {
-        const quantityInput = orderForm.querySelector('[name="quantity"]');
-        const walletOption = orderForm.querySelector('[data-wallet-option]');
-        const walletWarning = orderForm.querySelector('[data-wallet-warning]');
-        const totalLabel = orderForm.querySelector('[data-order-total]');
-        const updateOrderAmount = () => {
+        const ratePreview = orderForm.querySelector('[data-rate-preview]');
+        const updateRatePreview = () => {
             const selected = serviceSelect.selectedOptions[0];
             const unitPrice = Number(selected?.dataset.price || 0);
-            const quantity = Math.max(1, Number(quantityInput?.value || 1));
-            const total = unitPrice * quantity;
-            if (totalLabel) totalLabel.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(total)}`;
-
-            const hasBalance = Number(walletOption?.dataset.walletBalance || 0) >= total;
-            if (walletOption) walletOption.disabled = !hasBalance;
-            if (walletWarning) walletWarning.hidden = hasBalance;
-            if (!hasBalance && walletOption?.checked) {
-                walletOption.checked = false;
-                orderForm.querySelector('[name="payment_method"][value="qris"]').checked = true;
-            }
+            const delivery = orderForm.querySelector('[name="delivery_method"]:checked');
+            const pickupFee = Number(delivery?.dataset.pickupFee || 0);
+            const formattedRate = `Rp ${new Intl.NumberFormat('id-ID').format(unitPrice)} / kg`;
+            const formattedPickup = ` · + Rp ${new Intl.NumberFormat('id-ID').format(pickupFee)} biaya jemput`;
+            if (ratePreview) ratePreview.textContent = formattedRate + (pickupFee ? formattedPickup : '');
         };
-        serviceSelect.addEventListener('change', updateOrderAmount);
-        quantityInput?.addEventListener('input', updateOrderAmount);
-        updateOrderAmount();
+        serviceSelect.addEventListener('change', updateRatePreview);
+        orderForm.querySelectorAll('[name="delivery_method"]').forEach((option) => option.addEventListener('change', updateRatePreview));
+        updateRatePreview();
     }
 
     document.querySelectorAll('[data-payment-confirm]').forEach((form) => {

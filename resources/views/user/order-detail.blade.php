@@ -17,6 +17,7 @@
         $progressSteps = ['pending' => 'Pesanan diterima', 'processing' => 'Sedang dicuci', 'completed' => 'Selesai'];
         $progressOrder = array_keys($progressSteps);
         $currentProgress = array_search($order->status, $progressOrder, true);
+        $deliveryLabels = ['waiting' => $order->delivery_method === 'pickup' ? 'Menunggu dijemput' : 'Menunggu diantar ke laundry', 'picked_up' => 'Sudah dijemput kurir', 'received' => 'Diterima laundry', 'returned' => 'Sudah dikembalikan / siap diambil'];
     @endphp
 
     <main class="order-detail-main">
@@ -40,16 +41,24 @@
                 <div class="order-section-divider"></div>
                 <div class="order-detail-heading"><div><p class="overline">RINCIAN CUCIAN</p><h2>{{ $order->service_name }}</h2></div></div>
                 <p class="order-detail-description">{{ $order->order_details ?: 'Tidak ada catatan tambahan.' }}</p>
-                <div class="order-detail-facts"><span><small>JUMLAH</small><strong>{{ $order->quantity }} paket / kg</strong></span><span><small>DIBUAT</small><strong>{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y, H:i') }}</strong></span><span><small>TELEPON LAUNDRY</small><strong>{{ $order->store_phone }}</strong></span></div>
+                <div class="order-section-divider"></div>
+                <div class="delivery-progress"><div><p class="overline">PENYERAHAN</p><h2>{{ $order->delivery_method === 'pickup' ? 'Antar-jemput' : 'Drop-off' }}</h2></div><span class="status-pill status-{{ $order->delivery_status }}">{{ $deliveryLabels[$order->delivery_status] ?? ucfirst($order->delivery_status) }}</span></div>
+                @if ($order->delivery_method === 'pickup')<p class="delivery-fee-note">Biaya jemput: Rp {{ number_format($order->pickup_fee, 0, ',', '.') }}</p>@endif
+                <div class="order-detail-facts"><span><small>BERAT CUCIAN</small><strong>{{ $order->weight_kg !== null ? number_format($order->weight_kg, 2, ',', '.') . ' kg' : 'Menunggu ditimbang laundry' }}</strong></span><span><small>TARIF PAKET</small><strong>Rp {{ number_format($order->service_rate ?? 0, 0, ',', '.') }} / kg</strong></span><span><small>DIBUAT</small><strong>{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y, H:i') }}</strong></span><span><small>TELEPON LAUNDRY</small><strong>{{ $order->store_phone }}</strong></span></div>
             </section>
 
             <aside class="order-payment-card">
                 <p class="overline">PEMBAYARAN</p><h2>Ringkasan biaya</h2>
-                <div class="payment-total-row"><span>Total pesanan</span><strong>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</strong></div>
+                @if ($order->weighed_at)<div class="invoice-breakdown"><div><span>{{ number_format($order->weight_kg, 2, ',', '.') }} kg × Rp {{ number_format($order->service_rate, 0, ',', '.') }} / kg</span><strong>Rp {{ number_format($order->weight_kg * $order->service_rate, 0, ',', '.') }}</strong></div><div><span>Biaya jemput</span><strong>Rp {{ number_format($order->pickup_fee, 0, ',', '.') }}</strong></div></div>@endif
+                <div class="payment-total-row"><span>{{ $order->weighed_at ? 'Total tagihan akhir' : 'Estimasi tagihan' }}</span><strong>{{ $order->weighed_at ? 'Rp ' . number_format($order->total_amount, 0, ',', '.') : 'Menunggu timbang' }}</strong></div>
                 <div class="payment-detail-row"><span>Metode</span><strong>{{ $order->payment_method ? strtoupper($order->payment_method) : 'Belum dipilih' }}</strong></div>
                 <div class="payment-detail-row"><span>Status</span><span class="status-pill status-{{ $order->payment_status }}">{{ ucfirst($order->payment_status) }}</span></div>
 
-                @if ($order->payment_status === 'unpaid' && $order->payment_method === 'qris')
+                @if (!$order->weighed_at)
+                    <div class="payment-instruction"><strong>Tagihan belum tersedia</strong><p>Laundry akan menerima dan menimbang cucianmu dahulu. Setelah berat serta total biaya masuk, opsi pembayaran akan muncul di sini.</p></div>
+                @elseif ($order->payment_status === 'unpaid' && !$order->payment_method)
+                    <div class="payment-instruction"><strong>Pilih pembayaran</strong><p>Berat sudah dikonfirmasi laundry. Pilih cara pembayaran untuk menyelesaikan pesanan.</p>@if ($walletBalance >= $order->total_amount)<form action="{{ route('orders.pay', $order->id) }}" method="POST">@csrf<input type="hidden" name="payment_method" value="wallet"><button class="primary-button payment-submit" type="submit">Bayar dari saldo · Rp {{ number_format($order->total_amount, 0, ',', '.') }}</button></form>@else<p class="wallet-warning">Saldo Rp {{ number_format($walletBalance, 0, ',', '.') }} belum cukup. <a href="{{ route('profile', ['tab' => 'wallet']) }}">Top-up saldo</a> atau pilih QRIS.</p>@endif<form action="{{ route('orders.pay', $order->id) }}" method="POST">@csrf<input type="hidden" name="payment_method" value="qris"><button class="button button-light payment-submit" type="submit">Bayar dengan QRIS <span>→</span></button></form></div>
+                @elseif ($order->payment_status === 'unpaid' && $order->payment_method === 'qris')
                     <div class="payment-instruction"><button class="primary-button payment-submit" type="button" data-show-payment>Bayar sekarang <span>→</span></button><div class="payment-code-details" data-payment-details hidden><strong>QRIS simulasi</strong><p>Pindai/tinjau kode demo lalu konfirmasi. Kode ini tidak memproses uang nyata.</p><div class="simulated-payment order-qr"><canvas class="fake-qr" width="168" height="168" data-fake-qr="{{ $order->payment_reference }}" aria-label="QRIS simulasi pesanan"></canvas><div><code>{{ $order->payment_reference }}</code></div></div><form action="{{ route('orders.confirm-qris', $order->id) }}" method="POST" data-payment-confirm>@csrf<button class="primary-button payment-submit" type="submit">Saya sudah membayar</button></form></div></div>
                 @elseif ($order->payment_status === 'unpaid')
                     <div class="payment-instruction"><strong>Menunggu pembayaran</strong><p>Hubungi laundry untuk mendapatkan instruksi pembayaran.</p></div>

@@ -114,32 +114,25 @@ class UserStorefrontTest extends TestCase
     public function test_customer_can_order_service_and_see_it_in_profile_history(): void
     {
         $this->actingAs($this->customer);
-        DB::table('user_wallets')->insert([
-            'user_id' => $this->customer->id,
-            'balance' => 50000,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
         $this->post(route('orders.store', $this->laundry->id), [
             'service_id' => $this->serviceId,
             'garment_type' => 'kiloan',
             'wash_type' => 'cuci_setrika',
-            'quantity' => 3,
+            'delivery_method' => 'dropoff',
             'notes' => 'Pisahkan pakaian putih',
-            'payment_method' => 'wallet',
         ])->assertRedirect(route('profile', ['tab' => 'orders']));
 
         $this->assertDatabaseHas('laundry_transactions', [
             'laundry_id' => $this->laundry->id,
             'user_id' => $this->customer->id,
             'service_id' => $this->serviceId,
-            'total_amount' => 24000,
+            'total_amount' => 0,
             'status' => 'pending',
-            'payment_status' => 'paid',
-            'payment_method' => 'wallet',
+            'payment_status' => 'unpaid',
+            'payment_method' => null,
+            'delivery_method' => 'dropoff',
+            'delivery_status' => 'waiting',
         ]);
-        $this->assertDatabaseHas('user_wallets', ['user_id' => $this->customer->id, 'balance' => 26000]);
 
         $this->get(route('profile', ['tab' => 'orders']))
             ->assertOk()
@@ -151,7 +144,8 @@ class UserStorefrontTest extends TestCase
         $this->get(route('orders.show', $orderId))
             ->assertOk()
             ->assertSee('STATUS CUCIAN')
-            ->assertSee('Pembayaran diterima');
+            ->assertSee('Menunggu ditimbang laundry')
+            ->assertSee('Tagihan belum tersedia');
 
         $otherCustomer = User::create([
             'name' => 'Pelanggan Lain',
@@ -167,29 +161,47 @@ class UserStorefrontTest extends TestCase
 
     public function test_customer_can_confirm_simulated_qris_order_once(): void
     {
+        DB::table('owner_services')->where('id', $this->serviceId)->update(['price' => 10000]);
         $this->actingAs($this->customer);
-
         $this->post(route('orders.store', $this->laundry->id), [
             'service_id' => $this->serviceId,
             'garment_type' => 'pakaian',
             'wash_type' => 'cuci',
-            'quantity' => 1,
-            'payment_method' => 'qris',
+            'delivery_method' => 'dropoff',
         ])->assertRedirect(route('profile', ['tab' => 'orders']));
 
         $order = DB::table('laundry_transactions')->where('user_id', $this->customer->id)->first();
         $this->assertSame('unpaid', $order->payment_status);
+        $this->assertNull($order->payment_method);
+        $this->assertNull($order->payment_reference);
+
+        $owner = User::where('email', 'laundry-owner@example.com')->firstOrFail();
+        $this->actingAs($owner)->post(route('owner.transactions.delivery-status', $order->id), ['delivery_status' => 'received'])->assertRedirect();
+        $this->post(route('owner.transactions.weigh', $order->id), ['weight_kg' => 3.5])->assertRedirect();
+        $weighedOrder = DB::table('laundry_transactions')->where('id', $order->id)->first();
+        $this->assertEquals(3.5, (float) $weighedOrder->weight_kg);
+        $this->assertEquals(35000, (float) $weighedOrder->total_amount);
+        $this->assertNotNull($weighedOrder->weighed_at);
+
+        $this->actingAs($this->customer)->get(route('orders.show', $order->id))->assertOk()->assertSee('3,50 kg')->assertSee('Rp 35.000');
+        $this->post(route('orders.pay', $order->id), ['payment_method' => 'qris'])->assertRedirect(route('orders.show', $order->id));
+        $order = DB::table('laundry_transactions')->where('id', $order->id)->first();
+        $this->assertSame('unpaid', $order->payment_status);
         $this->assertSame('qris', $order->payment_method);
         $this->assertNotEmpty($order->payment_reference);
 
-        $this->get(route('profile', ['tab' => 'orders']))
-            ->assertOk()
-            ->assertSee('QRIS simulasi')
-            ->assertSee($order->payment_reference);
-
+        $this->get(route('orders.show', $order->id))->assertOk()->assertSee('Bayar sekarang')->assertSee($order->payment_reference);
         $this->post(route('orders.confirm-qris', $order->id))->assertRedirect(route('profile', ['tab' => 'orders']));
         $this->assertDatabaseHas('laundry_transactions', ['id' => $order->id, 'payment_status' => 'paid']);
         $this->post(route('orders.confirm-qris', $order->id))->assertNotFound();
+
+        $owner = User::where('email', 'laundry-owner@example.com')->firstOrFail();
+        $this->actingAs($owner)->post(route('owner.transactions.status', $order->id), ['status' => 'processing'])->assertRedirect();
+        $this->post(route('owner.transactions.status', $order->id), ['status' => 'completed'])->assertRedirect();
+        $this->post(route('owner.transactions.delivery-status', $order->id), ['delivery_status' => 'returned'])->assertRedirect();
+        $this->actingAs($this->customer)->get(route('orders.show', $order->id))
+            ->assertOk()
+            ->assertSee('Sudah dikembalikan / siap diambil');
     }
 
     public function test_order_cannot_be_paid_from_insufficient_wallet_balance(): void
@@ -202,16 +214,56 @@ class UserStorefrontTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $this->from(route('laundry.show', $this->laundry->id))->post(route('orders.store', $this->laundry->id), [
+        $this->post(route('orders.store', $this->laundry->id), [
             'service_id' => $this->serviceId,
             'garment_type' => 'kiloan',
             'wash_type' => 'cuci',
-            'quantity' => 1,
-            'payment_method' => 'wallet',
-        ])->assertRedirect(route('laundry.show', $this->laundry->id))->assertSessionHasErrors('payment_method');
+            'delivery_method' => 'dropoff',
+        ])->assertRedirect(route('profile', ['tab' => 'orders']));
 
-        $this->assertDatabaseCount('laundry_transactions', 0);
+        $orderId = (int) DB::table('laundry_transactions')->where('user_id', $this->customer->id)->value('id');
+        $owner = User::where('email', 'laundry-owner@example.com')->firstOrFail();
+        $this->actingAs($owner)->post(route('owner.transactions.delivery-status', $orderId), ['delivery_status' => 'received'])->assertRedirect();
+        $this->post(route('owner.transactions.weigh', $orderId), ['weight_kg' => 2])->assertRedirect();
+        $this->actingAs($this->customer)->from(route('orders.show', $orderId))
+            ->post(route('orders.pay', $orderId), ['payment_method' => 'wallet'])
+            ->assertRedirect(route('orders.show', $orderId))
+            ->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseHas('laundry_transactions', ['id' => $orderId, 'payment_status' => 'unpaid', 'total_amount' => 16000]);
         $this->assertDatabaseHas('user_wallets', ['user_id' => $this->customer->id, 'balance' => 1000]);
+    }
+
+    public function test_customer_can_pay_final_weighed_invoice_from_wallet(): void
+    {
+        $this->actingAs($this->customer)->post(route('orders.store', $this->laundry->id), [
+            'service_id' => $this->serviceId,
+            'garment_type' => 'kiloan',
+            'wash_type' => 'cuci_setrika',
+            'delivery_method' => 'dropoff',
+        ])->assertRedirect();
+
+        $orderId = (int) DB::table('laundry_transactions')->where('user_id', $this->customer->id)->value('id');
+        $owner = User::where('email', 'laundry-owner@example.com')->firstOrFail();
+        $this->actingAs($owner)->post(route('owner.transactions.delivery-status', $orderId), ['delivery_status' => 'received'])->assertRedirect();
+        $this->post(route('owner.transactions.weigh', $orderId), ['weight_kg' => 2])->assertRedirect();
+
+        DB::table('user_wallets')->insert([
+            'user_id' => $this->customer->id,
+            'balance' => 20000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($this->customer)->post(route('orders.pay', $orderId), ['payment_method' => 'wallet'])
+            ->assertRedirect(route('orders.show', $orderId));
+
+        $this->assertDatabaseHas('laundry_transactions', [
+            'id' => $orderId,
+            'total_amount' => 16000,
+            'payment_method' => 'wallet',
+            'payment_status' => 'paid',
+        ]);
+        $this->assertDatabaseHas('user_wallets', ['user_id' => $this->customer->id, 'balance' => 4000]);
     }
 
     public function test_order_chat_connects_customer_and_owning_laundry(): void
@@ -221,8 +273,7 @@ class UserStorefrontTest extends TestCase
             'service_id' => $this->serviceId,
             'garment_type' => 'kiloan',
             'wash_type' => 'cuci',
-            'quantity' => 1,
-            'payment_method' => 'qris',
+            'delivery_method' => 'pickup',
         ])->assertRedirect();
 
         $orderId = (int) DB::table('laundry_transactions')->where('user_id', $this->customer->id)->value('id');

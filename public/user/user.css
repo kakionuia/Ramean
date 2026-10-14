@@ -179,6 +179,20 @@ main { width: min(100%, 1180px); margin-inline: auto; padding-inline: 24px; }
 .wallet-available { display: inline-block; margin-top: 3px; color: #64756a; font-size: 9px; }
 .wallet-available strong { color: var(--user-green); }
 .payment-choice { display: grid; gap: 7px; margin: 0; padding: 11px; border: 1px solid #e4ebe5; border-radius: 7px; }
+.delivery-choice { display: grid; gap: 7px; margin: 0; padding: 11px; border: 1px solid #e4ebe5; border-radius: 7px; }
+.delivery-choice legend { padding: 0 5px; color: #56675b; font-size: 10px; font-weight: 800; }
+.delivery-option { display: flex; min-height: 48px; align-items: center; gap: 9px; padding: 8px 10px; border: 1px solid #e8ede9; border-radius: 6px; cursor: pointer; }
+.delivery-option:has(input:checked) { border-color: #82ad8e; background: #f1f7f1; }
+.delivery-option input { width: 14px; height: 14px; accent-color: var(--user-green); }
+.delivery-option span { flex: 1; }
+.delivery-option strong, .delivery-option small { display: block; }
+.delivery-option strong { color: #334a39; font-size: 10px; }
+.delivery-option small { margin-top: 3px; color: #7d8b82; font-size: 8px; }
+.delivery-option > b { color: #557761; font-size: 9px; }
+.delivery-progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; }
+.delivery-progress h2 { margin: 0; font-family: Georgia, serif; font-size: 16px; font-weight: 500; }
+.delivery-progress .overline { margin-bottom: 4px; }
+.delivery-fee-note { margin: 9px 0 0; color: #6e7e73; font-size: 9px; }
 .payment-choice legend { padding: 0 5px; color: #56675b; font-size: 10px; font-weight: 800; }
 .payment-option { display: flex; min-height: 48px; align-items: center; gap: 9px; padding: 8px 10px; border: 1px solid #e8ede9; border-radius: 6px; cursor: pointer; }
 .payment-option:has(input:checked) { border-color: #82ad8e; background: #f1f7f1; }

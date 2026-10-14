@@ -75,6 +75,20 @@ document.addEventListener('DOMContentLoaded', () => {
         toggle.addEventListener('change', updateTimeInputs);
         updateTimeInputs();
     });
+    document.querySelectorAll('[data-weigh-form]').forEach((form) => {
+        const weightInput = form.querySelector('[name="weight_kg"]');
+        const preview = form.querySelector('[data-weigh-total]');
+        const rate = Number(form.dataset.rate || 0);
+        const pickupFee = Number(form.dataset.pickupFee || 0);
+        const updateWeighTotal = () => {
+            const weight = Number(String(weightInput.value).replace(',', '.'));
+            preview.textContent = weight > 0
+                ? `Rp ${new Intl.NumberFormat('id-ID').format(Math.round((weight * rate + pickupFee) * 100) / 100)}`
+                : 'Masukkan berat';
+        };
+        weightInput.addEventListener('input', updateWeighTotal);
+        updateWeighTotal();
+    });
 
     const chatRoot = document.querySelector('[data-chat-root]');
     const chatMessages = document.getElementById('chatMessages');

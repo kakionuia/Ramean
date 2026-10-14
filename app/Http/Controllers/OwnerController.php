@@ -77,6 +77,73 @@ class OwnerController extends Controller
         return $this->page('transaction-detail', compact('order'));
     }
 
+    public function updateDeliveryStatus(Request $request, int $transaction)
+    {
+        $laundry = $this->laundry();
+        $validated = $request->validate(['delivery_status' => ['required', 'in:picked_up,received,returned']]);
+
+        DB::transaction(function () use ($laundry, $transaction, $validated) {
+            $order = DB::table('laundry_transactions')->where('id', $transaction)
+                ->where('laundry_id', $laundry->id)->lockForUpdate()->first();
+            abort_unless($order, 404);
+
+            if ($validated['delivery_status'] === 'returned') {
+                abort_unless($order->status === 'completed' && $order->payment_status === 'paid' && $order->delivery_status === 'received', 422);
+                DB::table('laundry_transactions')->where('id', $order->id)->update([
+                    'delivery_status' => 'returned',
+                    'updated_at' => now(),
+                ]);
+                return;
+            }
+
+            abort_unless($order->status === 'pending' && !$order->weighed_at, 404);
+
+            $allowed = $order->delivery_method === 'pickup'
+                ? ['waiting' => ['picked_up'], 'picked_up' => ['received']]
+                : ['waiting' => ['received']];
+            abort_unless(in_array($validated['delivery_status'], $allowed[$order->delivery_status] ?? [], true), 422);
+
+            DB::table('laundry_transactions')->where('id', $order->id)->update([
+                'delivery_status' => $validated['delivery_status'],
+                'updated_at' => now(),
+            ]);
+        });
+
+        return back()->with('success', 'Status penerimaan cucian berhasil diperbarui.');
+    }
+
+    public function weighTransaction(Request $request, int $transaction)
+    {
+        $laundry = $this->laundry();
+        $validated = $request->validate(['weight_kg' => ['required', 'numeric', 'gt:0', 'max:1000']]);
+
+        DB::transaction(function () use ($laundry, $transaction, $validated) {
+            $order = DB::table('laundry_transactions')->where('id', $transaction)
+                ->where('laundry_id', $laundry->id)->lockForUpdate()->first();
+            abort_unless($order && $order->status === 'pending' && $order->delivery_status === 'received' && !$order->weighed_at, 422);
+
+            $weight = round((float) $validated['weight_kg'], 2);
+            $serviceRate = $order->service_rate;
+            if ($serviceRate === null && $order->service_id) {
+                $serviceRate = DB::table('owner_services')->where('id', $order->service_id)->value('price');
+            }
+            abort_unless($serviceRate !== null, 422, 'Tarif layanan tidak ditemukan. Perbarui data paket sebelum menimbang.');
+            $pickupFee = (float) ($order->pickup_fee ?? 0);
+            $total = round(($weight * (float) $serviceRate) + $pickupFee, 2);
+
+            DB::table('laundry_transactions')->where('id', $order->id)->update([
+                'weight_kg' => $weight,
+                'service_rate' => $serviceRate,
+                'pickup_fee' => $pickupFee,
+                'total_amount' => $total,
+                'weighed_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        return back()->with('success', 'Berat tercatat dan tagihan akhir sudah dihitung. User sekarang dapat membayar.');
+    }
+
     public function updateTransactionStatus(Request $request, int $transaction)
     {
         $laundry = $this->laundry();
@@ -99,8 +166,8 @@ class OwnerController extends Controller
             if (!in_array($validated['status'], $allowedTransitions[$order->status] ?? [], true)) {
                 abort(422, 'Status pesanan tidak dapat diubah ke tahap tersebut.');
             }
-            if ($order->payment_status !== 'paid') {
-                abort(422, 'Pesanan hanya dapat diproses setelah pembayaran diterima.');
+            if (!$order->weighed_at || $order->payment_status !== 'paid') {
+                abort(422, 'Cucian harus ditimbang dan dibayar sebelum mulai diproses.');
             }
 
             DB::table('laundry_transactions')->where('id', $order->id)->update([
@@ -345,6 +412,7 @@ class OwnerController extends Controller
             'store_phone' => ['required', 'string', 'max:30'],
             'address' => ['required', 'string', 'max:2000'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'pickup_fee' => ['required', 'numeric', 'min:0', 'max:1000000'],
             'hours' => ['required', 'array', 'size:7'],
             'hours.*.is_closed' => ['nullable', 'boolean'],
             'hours.*.opens_at' => ['nullable', 'date_format:H:i'],
@@ -367,6 +435,7 @@ class OwnerController extends Controller
                 'store_phone' => $validated['store_phone'],
                 'address' => $validated['address'],
                 'description' => $validated['description'] ?? null,
+                'pickup_fee' => $validated['pickup_fee'],
                 'updated_at' => now(),
             ]);
 

@@ -130,12 +130,14 @@ class OwnerPortalTest extends TestCase
             'customer_name' => 'Pelanggan Cucian',
             'service_name' => 'Cuci Kiloan · Cuci dan setrika',
             'order_details' => 'Jenis cucian: Pakaian kiloan | Catatan: pisahkan putih',
-            'quantity' => 2,
-            'total_amount' => 16000,
+            'quantity' => 1,
+            'total_amount' => 0,
             'status' => 'pending',
-            'payment_status' => 'paid',
-            'payment_method' => 'wallet',
-            'paid_at' => now(),
+            'payment_status' => 'unpaid',
+            'delivery_method' => 'pickup',
+            'delivery_status' => 'waiting',
+            'pickup_fee' => 5000,
+            'service_rate' => 10000,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -146,11 +148,25 @@ class OwnerPortalTest extends TestCase
             ->assertSee('Pelanggan Cucian')
             ->assertSee('Jenis cucian: Pakaian kiloan');
 
+        $this->post(route('owner.transactions.delivery-status', $orderId), ['delivery_status' => 'picked_up'])->assertRedirect();
+        $this->post(route('owner.transactions.delivery-status', $orderId), ['delivery_status' => 'received'])->assertRedirect();
+        $this->post(route('owner.transactions.weigh', $orderId), ['weight_kg' => 3.5])->assertRedirect();
+        $this->assertDatabaseHas('laundry_transactions', [
+            'id' => $orderId,
+            'weight_kg' => 3.5,
+            'pickup_fee' => 5000,
+            'total_amount' => 40000,
+            'payment_status' => 'unpaid',
+        ]);
+
+        \DB::table('laundry_transactions')->where('id', $orderId)->update(['payment_status' => 'paid', 'paid_at' => now()]);
         $this->post(route('owner.transactions.status', $orderId), ['status' => 'processing'])->assertRedirect();
         $this->assertDatabaseHas('laundry_transactions', ['id' => $orderId, 'status' => 'processing']);
 
         $this->post(route('owner.transactions.status', $orderId), ['status' => 'completed'])->assertRedirect();
         $this->assertDatabaseHas('laundry_transactions', ['id' => $orderId, 'status' => 'completed']);
+        $this->post(route('owner.transactions.delivery-status', $orderId), ['delivery_status' => 'returned'])->assertRedirect();
+        $this->assertDatabaseHas('laundry_transactions', ['id' => $orderId, 'delivery_status' => 'returned']);
 
         $this->post(route('owner.transactions.status', $orderId), ['status' => 'processing'])->assertStatus(422);
     }

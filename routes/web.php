@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/laundries/{laundry}', [UserController::class, 'showLaundry'])->name('laundry.show');
     Route::post('/laundries/{laundry}/orders', [UserController::class, 'storeOrder'])->name('orders.store');
     Route::post('/orders/{transaction}/confirm-qris', [UserController::class, 'confirmOrderQris'])->name('orders.confirm-qris');
+    Route::post('/orders/{transaction}/pay', [UserController::class, 'payOrder'])->name('orders.pay');
     Route::get('/orders/{transaction}', [UserController::class, 'showOrder'])->name('orders.show');
     Route::get('/orders/{transaction}/messages', [UserController::class, 'orderMessages'])->name('orders.messages');
     Route::post('/orders/{transaction}/messages', [UserController::class, 'sendOrderMessage'])->name('orders.messages.store');
@@ -42,6 +43,8 @@ Route::prefix('owner')->name('owner.')->middleware('auth')->controller(OwnerCont
     Route::get('/dashboard', 'dashboard')->name('dashboard');
     Route::get('/transactions', 'transactions')->name('transactions');
     Route::get('/transactions/{transaction}', 'transactionDetail')->name('transactions.show');
+    Route::post('/transactions/{transaction}/delivery-status', 'updateDeliveryStatus')->name('transactions.delivery-status');
+    Route::post('/transactions/{transaction}/weigh', 'weighTransaction')->name('transactions.weigh');
     Route::post('/transactions/{transaction}/status', 'updateTransactionStatus')->name('transactions.status');
     Route::get('/services', 'services')->name('services');
     Route::post('/services', 'storeService')->name('services.store');

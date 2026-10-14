@@ -104,6 +104,7 @@ class UserController extends Controller
             'laundry' => $laundry,
             'services' => $services,
             'walletBalance' => $wallet->balance ?? 0,
+            'pickupFee' => (float) ($laundry->pickup_fee ?? 0),
         ]);
     }
 
@@ -114,9 +115,8 @@ class UserController extends Controller
             'service_id' => ['required', 'integer'],
             'garment_type' => ['required', 'in:kiloan,pakaian,selimut,sepatu,lainnya'],
             'wash_type' => ['required', 'in:cuci,setrika,cuci_setrika'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:100'],
+            'delivery_method' => ['required', 'in:dropoff,pickup'],
             'notes' => ['nullable', 'string', 'max:500'],
-            'payment_method' => ['required', 'in:wallet,qris'],
         ]);
 
         $service = DB::table('owner_services')
@@ -142,22 +142,8 @@ class UserController extends Controller
             'lainnya' => 'Lainnya',
         ];
 
-        $totalAmount = $service->price * $validated['quantity'];
-        $paymentReference = $validated['payment_method'] === 'qris'
-            ? 'ORD-' . now()->format('ymdHis') . '-' . strtoupper(bin2hex(random_bytes(3)))
-            : null;
-
-        DB::transaction(function () use ($validated, $service, $laundry, $washLabels, $garmentLabels, $totalAmount, $paymentReference) {
-            $wallet = null;
-            if ($validated['payment_method'] === 'wallet') {
-                $wallet = DB::table('user_wallets')->where('user_id', Auth::id())->lockForUpdate()->first();
-                if (!$wallet || $wallet->balance < $totalAmount) {
-                    throw ValidationException::withMessages([
-                        'payment_method' => 'Saldo tidak cukup. Silakan top-up atau pilih pembayaran QRIS.',
-                    ]);
-                }
-            }
-
+        $pickupFee = $validated['delivery_method'] === 'pickup' ? (float) $laundryRecord->pickup_fee : 0;
+        DB::transaction(function () use ($validated, $service, $laundry, $washLabels, $garmentLabels, $pickupFee) {
             DB::table('laundry_transactions')->insert([
                 'laundry_id' => $laundry,
                 'user_id' => Auth::id(),
@@ -167,29 +153,25 @@ class UserController extends Controller
                 'order_details' => implode(' | ', array_filter([
                     'Jenis cucian: ' . $garmentLabels[$validated['garment_type']],
                     'Jenis layanan: ' . $washLabels[$validated['wash_type']],
+                    'Pengantaran: ' . ($validated['delivery_method'] === 'pickup' ? 'Antar-jemput' : 'Drop-off ke laundry'),
                     'Catatan: ' . ($validated['notes'] ?? ''),
                 ])),
-                'quantity' => $validated['quantity'],
-                'total_amount' => $totalAmount,
+                'quantity' => 1,
+                'total_amount' => 0,
                 'status' => 'pending',
-                'payment_status' => $validated['payment_method'] === 'wallet' ? 'paid' : 'unpaid',
-                'payment_method' => $validated['payment_method'],
-                'payment_reference' => $paymentReference,
-                'paid_at' => $validated['payment_method'] === 'wallet' ? now() : null,
+                'payment_status' => 'unpaid',
+                'payment_method' => null,
+                'payment_reference' => null,
+                'delivery_method' => $validated['delivery_method'],
+                'pickup_fee' => $pickupFee,
+                'service_rate' => $service->price,
+                'delivery_status' => 'waiting',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-            if ($wallet) {
-                DB::table('user_wallets')->where('id', $wallet->id)->decrement('balance', $totalAmount, ['updated_at' => now()]);
-            }
         });
 
-        $message = $validated['payment_method'] === 'wallet'
-            ? 'Pesanan dibuat dan dibayar menggunakan saldo.'
-            : 'Pesanan dibuat. Selesaikan konfirmasi QRIS simulasi dari riwayat transaksi.';
-
-        return redirect()->route('profile', ['tab' => 'orders'])->with('success', $message);
+        return redirect()->route('profile', ['tab' => 'orders'])->with('success', 'Pesanan dibuat. Laundry akan menimbang cucian sebelum pembayaran dibuka.');
     }
 
     public function profile(Request $request)
@@ -217,6 +199,7 @@ class UserController extends Controller
         $this->customer();
 
         $order = $this->ownedOrder($transaction);
+        $wallet = DB::table('user_wallets')->where('user_id', Auth::id())->first();
         $messages = DB::table('laundry_messages')
             ->where('laundry_id', $order->laundry_id)
             ->where('user_id', Auth::id())
@@ -229,7 +212,11 @@ class UserController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return view('user.order-detail', compact('order', 'messages'));
+        return view('user.order-detail', [
+            'order' => $order,
+            'messages' => $messages,
+            'walletBalance' => (float) ($wallet->balance ?? 0),
+        ]);
     }
 
     private function ownedOrder(int $transaction): object
@@ -319,7 +306,7 @@ class UserController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            abort_unless($order && $order->payment_method === 'qris' && $order->payment_status === 'unpaid', 404);
+            abort_unless($order && $order->weighed_at && $order->payment_method === 'qris' && $order->payment_status === 'unpaid', 404);
 
             DB::table('laundry_transactions')->where('id', $order->id)->update([
                 'payment_status' => 'paid',
@@ -329,5 +316,49 @@ class UserController extends Controller
         });
 
         return redirect()->route('profile', ['tab' => 'orders'])->with('success', 'Pembayaran QRIS simulasi berhasil dikonfirmasi.');
+    }
+
+    public function payOrder(Request $request, int $transaction)
+    {
+        $this->customer();
+        $validated = $request->validate(['payment_method' => ['required', 'in:wallet,qris']]);
+
+        DB::transaction(function () use ($transaction, $validated) {
+            $order = DB::table('laundry_transactions')
+                ->where('id', $transaction)
+                ->where('user_id', Auth::id())
+                ->lockForUpdate()
+                ->first();
+            abort_unless($order && $order->status === 'pending' && $order->payment_status === 'unpaid' && $order->weighed_at, 404);
+
+            if ($validated['payment_method'] === 'qris') {
+                DB::table('laundry_transactions')->where('id', $order->id)->update([
+                    'payment_method' => 'qris',
+                    'payment_reference' => $order->payment_reference ?: 'ORD-' . now()->format('ymdHis') . '-' . strtoupper(bin2hex(random_bytes(3))),
+                    'updated_at' => now(),
+                ]);
+                return;
+            }
+
+            $wallet = DB::table('user_wallets')->where('user_id', Auth::id())->lockForUpdate()->first();
+            if (!$wallet || $wallet->balance < $order->total_amount) {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'Saldo tidak cukup. Silakan top-up atau pilih QRIS.',
+                ]);
+            }
+
+            DB::table('user_wallets')->where('id', $wallet->id)->decrement('balance', $order->total_amount, ['updated_at' => now()]);
+            DB::table('laundry_transactions')->where('id', $order->id)->update([
+                'payment_method' => 'wallet',
+                'payment_reference' => null,
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('orders.show', $transaction)->with('success', $validated['payment_method'] === 'wallet'
+            ? 'Pembayaran dari saldo berhasil. Laundry dapat mulai mengerjakan cucian.'
+            : 'Kode QRIS simulasi dibuat. Selesaikan pembayaran lalu konfirmasi.');
     }
 }
