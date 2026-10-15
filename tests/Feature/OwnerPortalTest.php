@@ -44,7 +44,7 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner);
 
         foreach (['dashboard', 'transactions', 'services', 'finance', 'reviews', 'chat', 'settings'] as $section) {
-            $this->get(route('owner.' . $section))->assertOk();
+            $this->get(route('owner.'.$section))->assertOk();
         }
     }
 

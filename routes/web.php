@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\RegisterOwnerController;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 // Rute Halaman Utama (Publik)
 Route::get('/', function () {
@@ -84,4 +84,3 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->controller(AdminCont
     Route::post('/topups/{topup}/approve', 'processTopup')->defaults('decision', 'approve')->name('topups.approve');
     Route::post('/topups/{topup}/reject', 'processTopup')->defaults('decision', 'reject')->name('topups.reject');
 });
-

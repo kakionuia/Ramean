@@ -1,9 +1,0 @@
-.nav-bar {
-    display: flex;
-}
-
-.nav-bar .nav-item {
-    margin-right: 20px;
-    text-decoration: none;
-    color: #333;
-}

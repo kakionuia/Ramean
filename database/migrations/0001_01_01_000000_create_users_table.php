@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('phone')->nullable()->unique();
             $table->string('password');
             $table->enum('role', ['admin', 'owner', 'user'])->default('user');
-            $table->enum('status', ['pending', 'active', 'suspended'])->default('active'); 
+            $table->enum('status', ['pending', 'active', 'suspended'])->default('active');
             $table->timestamps();
         });
 

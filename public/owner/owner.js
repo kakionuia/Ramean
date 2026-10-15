@@ -82,9 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const pickupFee = Number(form.dataset.pickupFee || 0);
         const updateWeighTotal = () => {
             const weight = Number(String(weightInput.value).replace(',', '.'));
-            preview.textContent = weight > 0
-                ? `Rp ${new Intl.NumberFormat('id-ID').format(Math.round((weight * rate + pickupFee) * 100) / 100)}`
-                : 'Masukkan berat';
+            preview.textContent =
+                weight > 0
+                    ? `Rp ${new Intl.NumberFormat('id-ID').format(Math.round((weight * rate + pickupFee) * 100) / 100)}`
+                    : 'Masukkan berat';
         };
         weightInput.addEventListener('input', updateWeighTotal);
         updateWeighTotal();
@@ -99,8 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chatRoot && chatMessages && chatForm && chatInput) {
         const customerName = chatRoot.dataset.customer;
         const customerId = chatRoot.dataset.userId;
-        let lastMessageId = [...chatMessages.querySelectorAll('[data-message-id]')]
-            .reduce((latest, element) => Math.max(latest, Number(element.dataset.messageId)), 0);
+        let lastMessageId = [...chatMessages.querySelectorAll('[data-message-id]')].reduce(
+            (latest, element) => Math.max(latest, Number(element.dataset.messageId)),
+            0,
+        );
 
         const showChatError = (message) => {
             let status = document.getElementById('chatError');
@@ -122,7 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const body = document.createElement('p');
             body.textContent = message.message;
             const time = document.createElement('small');
-            time.textContent = new Date(message.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            time.textContent = new Date(message.created_at).toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
             bubble.append(body, time);
             chatMessages.append(bubble);
             lastMessageId = Number(message.id);

@@ -83,9 +83,9 @@ class AdminController extends Controller
 
         if ($search !== '') {
             $query->where(function ($users) use ($search) {
-                $users->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('phone', 'like', '%' . $search . '%');
+                $users->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%')
+                    ->orWhere('phone', 'like', '%'.$search.'%');
             });
         }
         if (in_array($role, ['user', 'owner'], true)) {

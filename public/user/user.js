@@ -66,13 +66,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ratePreview) ratePreview.textContent = formattedRate + (pickupFee ? formattedPickup : '');
         };
         serviceSelect.addEventListener('change', updateRatePreview);
-        orderForm.querySelectorAll('[name="delivery_method"]').forEach((option) => option.addEventListener('change', updateRatePreview));
+        orderForm
+            .querySelectorAll('[name="delivery_method"]')
+            .forEach((option) => option.addEventListener('change', updateRatePreview));
         updateRatePreview();
     }
 
     document.querySelectorAll('[data-payment-confirm]').forEach((form) => {
         form.addEventListener('submit', (event) => {
-            if (!window.confirm('Konfirmasi pembayaran QRIS simulasi? Tidak ada uang nyata yang diproses.')) event.preventDefault();
+            if (!window.confirm('Konfirmasi pembayaran QRIS simulasi? Tidak ada uang nyata yang diproses.'))
+                event.preventDefault();
         });
     });
 
@@ -89,8 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const userChat = document.querySelector('[data-user-chat]');
     const userChatMessages = document.getElementById('userOrderChatMessages');
     if (userChat && userChatMessages) {
-        let lastMessageId = [...userChatMessages.querySelectorAll('[data-message-id]')]
-            .reduce((latest, element) => Math.max(latest, Number(element.dataset.messageId)), 0);
+        let lastMessageId = [...userChatMessages.querySelectorAll('[data-message-id]')].reduce(
+            (latest, element) => Math.max(latest, Number(element.dataset.messageId)),
+            0,
+        );
         const appendOwnerMessage = (message) => {
             if (Number(message.id) <= lastMessageId) return;
             userChatMessages.querySelector('[data-chat-empty]')?.remove();
@@ -102,7 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const body = document.createElement('p');
             body.textContent = message.message;
             const time = document.createElement('small');
-            time.textContent = new Date(message.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            time.textContent = new Date(message.created_at).toLocaleString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
             bubble.append(author, body, time);
             userChatMessages.append(bubble);
             lastMessageId = Number(message.id);
@@ -130,7 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const modules = 29;
         const moduleSize = 5;
-        let seed = [...canvas.dataset.fakeQr].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7);
+        let seed = [...canvas.dataset.fakeQr].reduce(
+            (value, character) => (value * 31 + character.charCodeAt(0)) >>> 0,
+            7,
+        );
         const random = () => {
             seed = (seed * 1664525 + 1013904223) >>> 0;
             return seed / 4294967296;
@@ -146,8 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
             context.fillStyle = '#182b22';
             context.fillRect((left + 2) * moduleSize, (top + 2) * moduleSize, 3 * moduleSize, 3 * moduleSize);
         };
-        const inFinder = (x, y) => [[1, 1], [modules - 8, 1], [1, modules - 8]]
-            .some(([left, top]) => x >= left && x < left + 7 && y >= top && y < top + 7);
+        const inFinder = (x, y) =>
+            [
+                [1, 1],
+                [modules - 8, 1],
+                [1, modules - 8],
+            ].some(([left, top]) => x >= left && x < left + 7 && y >= top && y < top + 7);
 
         for (let y = 1; y < modules - 1; y += 1) {
             for (let x = 1; x < modules - 1; x += 1) {

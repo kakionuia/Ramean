@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Laundry;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,17 +16,17 @@ class RegisterOwnerController extends Controller
         // 1. Validasi Input
         $request->validate([
             // Validasi Owner
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|string|email|max:255|unique:users',
-            'phone'       => 'required|string|max:20|unique:users',
-            'password'    => 'required|string|min:8|confirmed',
-            
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'required|string|max:20|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+
             // Validasi Laundry
-            'store_name'  => 'required|string|max:255',
+            'store_name' => 'required|string|max:255',
             'store_phone' => 'required|string|max:20',
-            'address'     => 'required|string',
+            'address' => 'required|string',
             'description' => 'nullable|string',
-            'logo'        => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         // 2. Jalankan Database Transaction
@@ -41,23 +41,23 @@ class RegisterOwnerController extends Controller
 
             // A. Simpan Data User (Owner)
             $user = User::create([
-                'name'     => $request->name,
-                'email'    => $request->email,
-                'phone'    => $request->phone,
-                'address'  => $request->address,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
                 'password' => Hash::make($request->password),
-                'role'     => 'owner',      // Set Role otomatis jadi Owner
-                'status'   => 'pending',    // Opsional: 'pending' jika butuh ACC admin, atau 'active' jika langsung aktif
+                'role' => 'owner',      // Set Role otomatis jadi Owner
+                'status' => 'pending',    // Opsional: 'pending' jika butuh ACC admin, atau 'active' jika langsung aktif
             ]);
 
             // B. Simpan Data Laundry
             Laundry::create([
-                'user_id'     => $user->id,
-                'store_name'  => $request->store_name,
+                'user_id' => $user->id,
+                'store_name' => $request->store_name,
                 'store_phone' => $request->store_phone,
-                'address'     => $request->address,
+                'address' => $request->address,
                 'description' => $request->description,
-                'logo'        => $logoPath,
+                'logo' => $logoPath,
             ]);
 
             DB::commit();
@@ -67,6 +67,7 @@ class RegisterOwnerController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Owner registration failed.', ['exception' => $e]);
+
             return back()->with('error', 'Terjadi kesalahan saat pendaftaran. Silakan coba kembali.')->withInput();
         }
     }

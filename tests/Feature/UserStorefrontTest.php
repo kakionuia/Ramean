@@ -13,7 +13,9 @@ class UserStorefrontTest extends TestCase
     use RefreshDatabase;
 
     private User $customer;
+
     private Laundry $laundry;
+
     private int $serviceId;
 
     protected function setUp(): void

@@ -13,7 +13,9 @@ class AdminPortalTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $owner;
+
     private User $customer;
 
     protected function setUp(): void
@@ -50,7 +52,7 @@ class AdminPortalTest extends TestCase
         $this->actingAs($this->admin);
 
         foreach (['dashboard', 'applications', 'accounts', 'catalog', 'transactions', 'reviews', 'messages', 'schedules', 'topups'] as $section) {
-            $this->get(route('admin.' . $section))->assertOk();
+            $this->get(route('admin.'.$section))->assertOk();
         }
 
         $this->get(route('admin.applications'))->assertSee('Laundry Pending');

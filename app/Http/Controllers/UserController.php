@@ -29,20 +29,20 @@ class UserController extends Controller
 
         if ($search !== '') {
             $laundryQuery->where(function ($query) use ($search) {
-                $query->where('laundries.store_name', 'like', '%' . $search . '%')
-                    ->orWhere('laundries.address', 'like', '%' . $search . '%')
-                    ->orWhere('laundries.description', 'like', '%' . $search . '%')
+                $query->where('laundries.store_name', 'like', '%'.$search.'%')
+                    ->orWhere('laundries.address', 'like', '%'.$search.'%')
+                    ->orWhere('laundries.description', 'like', '%'.$search.'%')
                     ->orWhereExists(function ($services) use ($search) {
                         $services->selectRaw('1')->from('owner_services')
                             ->whereColumn('owner_services.laundry_id', 'laundries.id')
                             ->where('owner_services.is_active', true)
-                            ->where('owner_services.name', 'like', '%' . $search . '%');
+                            ->where('owner_services.name', 'like', '%'.$search.'%');
                     });
             });
         }
 
         if ($location !== '') {
-            $laundryQuery->where('laundries.address', 'like', '%' . $location . '%');
+            $laundryQuery->where('laundries.address', 'like', '%'.$location.'%');
         }
 
         $laundries = $laundryQuery->orderBy('laundries.store_name')->get()->map(function ($laundry) {
@@ -149,12 +149,12 @@ class UserController extends Controller
                 'user_id' => Auth::id(),
                 'service_id' => $service->id,
                 'customer_name' => Auth::user()->name,
-                'service_name' => $service->name . ' · ' . $washLabels[$validated['wash_type']],
+                'service_name' => $service->name.' · '.$washLabels[$validated['wash_type']],
                 'order_details' => implode(' | ', array_filter([
-                    'Jenis cucian: ' . $garmentLabels[$validated['garment_type']],
-                    'Jenis layanan: ' . $washLabels[$validated['wash_type']],
-                    'Pengantaran: ' . ($validated['delivery_method'] === 'pickup' ? 'Antar-jemput' : 'Drop-off ke laundry'),
-                    'Catatan: ' . ($validated['notes'] ?? ''),
+                    'Jenis cucian: '.$garmentLabels[$validated['garment_type']],
+                    'Jenis layanan: '.$washLabels[$validated['wash_type']],
+                    'Pengantaran: '.($validated['delivery_method'] === 'pickup' ? 'Antar-jemput' : 'Drop-off ke laundry'),
+                    'Catatan: '.($validated['notes'] ?? ''),
                 ])),
                 'quantity' => 1,
                 'total_amount' => 0,
@@ -286,7 +286,7 @@ class UserController extends Controller
             'user_id' => Auth::id(),
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
-            'payment_reference' => 'TOP-' . now()->format('ymdHis') . '-' . strtoupper(bin2hex(random_bytes(3))),
+            'payment_reference' => 'TOP-'.now()->format('ymdHis').'-'.strtoupper(bin2hex(random_bytes(3))),
             'status' => 'pending',
             'created_at' => now(),
             'updated_at' => now(),
@@ -334,14 +334,15 @@ class UserController extends Controller
             if ($validated['payment_method'] === 'qris') {
                 DB::table('laundry_transactions')->where('id', $order->id)->update([
                     'payment_method' => 'qris',
-                    'payment_reference' => $order->payment_reference ?: 'ORD-' . now()->format('ymdHis') . '-' . strtoupper(bin2hex(random_bytes(3))),
+                    'payment_reference' => $order->payment_reference ?: 'ORD-'.now()->format('ymdHis').'-'.strtoupper(bin2hex(random_bytes(3))),
                     'updated_at' => now(),
                 ]);
+
                 return;
             }
 
             $wallet = DB::table('user_wallets')->where('user_id', Auth::id())->lockForUpdate()->first();
-            if (!$wallet || $wallet->balance < $order->total_amount) {
+            if (! $wallet || $wallet->balance < $order->total_amount) {
                 throw ValidationException::withMessages([
                     'payment_method' => 'Saldo tidak cukup. Silakan top-up atau pilih QRIS.',
                 ]);

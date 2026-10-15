@@ -93,10 +93,11 @@ class OwnerController extends Controller
                     'delivery_status' => 'returned',
                     'updated_at' => now(),
                 ]);
+
                 return;
             }
 
-            abort_unless($order->status === 'pending' && !$order->weighed_at, 404);
+            abort_unless($order->status === 'pending' && ! $order->weighed_at, 404);
 
             $allowed = $order->delivery_method === 'pickup'
                 ? ['waiting' => ['picked_up'], 'picked_up' => ['received']]
@@ -120,7 +121,7 @@ class OwnerController extends Controller
         DB::transaction(function () use ($laundry, $transaction, $validated) {
             $order = DB::table('laundry_transactions')->where('id', $transaction)
                 ->where('laundry_id', $laundry->id)->lockForUpdate()->first();
-            abort_unless($order && $order->status === 'pending' && $order->delivery_status === 'received' && !$order->weighed_at, 422);
+            abort_unless($order && $order->status === 'pending' && $order->delivery_status === 'received' && ! $order->weighed_at, 422);
 
             $weight = round((float) $validated['weight_kg'], 2);
             $serviceRate = $order->service_rate;
@@ -163,10 +164,10 @@ class OwnerController extends Controller
                 'pending' => ['processing'],
                 'processing' => ['completed'],
             ];
-            if (!in_array($validated['status'], $allowedTransitions[$order->status] ?? [], true)) {
+            if (! in_array($validated['status'], $allowedTransitions[$order->status] ?? [], true)) {
                 abort(422, 'Status pesanan tidak dapat diubah ke tahap tersebut.');
             }
-            if (!$order->weighed_at || $order->payment_status !== 'paid') {
+            if (! $order->weighed_at || $order->payment_status !== 'paid') {
                 abort(422, 'Cucian harus ditimbang dan dibayar sebelum mulai diproses.');
             }
 
@@ -316,7 +317,7 @@ class OwnerController extends Controller
         $selectedCustomer = $request->query('customer');
         $selectedUserId = $request->query('user_id');
 
-        if (!$selectedCustomer && $customers->isNotEmpty()) {
+        if (! $selectedCustomer && $customers->isNotEmpty()) {
             $selectedCustomer = $customers->first()->customer_name;
             $selectedUserId = $customers->first()->user_id;
         }
@@ -421,11 +422,11 @@ class OwnerController extends Controller
 
         foreach (self::DAYS as $day => $label) {
             $dayHours = $validated['hours'][$day] ?? null;
-            if (!$dayHours) {
-                throw ValidationException::withMessages(['hours' => 'Jadwal untuk ' . $label . ' belum lengkap.']);
+            if (! $dayHours) {
+                throw ValidationException::withMessages(['hours' => 'Jadwal untuk '.$label.' belum lengkap.']);
             }
             if (empty($dayHours['is_closed']) && (empty($dayHours['opens_at']) || empty($dayHours['closes_at']))) {
-                throw ValidationException::withMessages(['hours.' . $day . '.opens_at' => 'Isi jam buka dan tutup atau tandai hari libur.']);
+                throw ValidationException::withMessages(['hours.'.$day.'.opens_at' => 'Isi jam buka dan tutup atau tandai hari libur.']);
             }
         }
 
@@ -444,9 +445,9 @@ class OwnerController extends Controller
                 DB::table('laundry_work_hours')->updateOrInsert(
                     ['laundry_id' => $laundry->id, 'day_of_week' => $day],
                     [
-                        'is_closed' => !empty($dayHours['is_closed']),
-                        'opens_at' => !empty($dayHours['is_closed']) ? null : $dayHours['opens_at'],
-                        'closes_at' => !empty($dayHours['is_closed']) ? null : $dayHours['closes_at'],
+                        'is_closed' => ! empty($dayHours['is_closed']),
+                        'opens_at' => ! empty($dayHours['is_closed']) ? null : $dayHours['opens_at'],
+                        'closes_at' => ! empty($dayHours['is_closed']) ? null : $dayHours['closes_at'],
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]

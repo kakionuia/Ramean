@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="id">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,38 +8,81 @@
     <title>{{ $laundry->store_name }} · Laundryku</title>
     <link rel="stylesheet" href="{{ asset('user/user.css') }}">
 </head>
+
 <body class="customer-page">
     <header class="customer-nav">
-        <div class="nav-user-actions"><a class="nav-profile-link" href="{{ route('profile') }}"><span class="user-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span><span class="nav-user-copy"><small>Akun</small><strong>{{ auth()->user()->name }}</strong></span></a><a class="nav-back-link" href="{{ route('dashboard') }}">← Beranda</a></div>
-        <a class="customer-brand" href="{{ route('dashboard') }}"><span class="brand-symbol">L</span><span>Laundry<span>ku</span></span></a>
+        <div class="nav-user-actions"><a class="nav-profile-link" href="{{ route('profile') }}"><span
+                    class="user-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span><span
+                    class="nav-user-copy"><small>Akun</small><strong>{{ auth()->user()->name }}</strong></span></a><a
+                class="nav-back-link" href="{{ route('dashboard') }}">← Beranda</a></div>
+        <a class="customer-brand" href="{{ route('dashboard') }}"><span
+                class="brand-symbol">L</span><span>Laundry<span>ku</span></span></a>
     </header>
 
     <main class="detail-main">
-        <nav class="breadcrumbs"><a href="{{ route('dashboard') }}">Beranda</a><span>/</span><span>{{ $laundry->store_name }}</span></nav>
-        <section class="detail-cover" style="--laundry-image: url('{{ $laundry->logo ? asset('storage/' . $laundry->logo) : 'https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=1600&q=85' }}')">
-            <span class="cover-kicker">LAUNDRY DI SEKITARMU</span><h1>{{ $laundry->store_name }}</h1><p>{{ $laundry->address }}</p>
+        <nav class="breadcrumbs"><a
+                href="{{ route('dashboard') }}">Beranda</a><span>/</span><span>{{ $laundry->store_name }}</span></nav>
+        <section class="detail-cover"
+            style="--laundry-image: url('{{ $laundry->logo ? asset('storage/' . $laundry->logo) : 'https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=1600&q=85' }}')">
+            <span class="cover-kicker">LAUNDRY DI SEKITARMU</span>
+            <h1>{{ $laundry->store_name }}</h1>
+            <p>{{ $laundry->address }}</p>
         </section>
 
-        @if (session('success'))<div class="customer-notice">{{ session('success') }}</div>@endif
-        @if ($errors->any())<div class="customer-notice notice-error">{{ $errors->first() }}</div>@endif
+        @if (session('success'))
+            <div class="customer-notice">{{ session('success') }}</div>
+        @endif
+        @if ($errors->any())
+            <div class="customer-notice notice-error">{{ $errors->first() }}</div>
+        @endif
 
         <div class="detail-columns">
             <section class="detail-about">
-                <p class="overline">TENTANG TEMPAT INI</p><h2>Rawat pakaianmu dengan lebih mudah.</h2>
+                <p class="overline">TENTANG TEMPAT INI</p>
+                <h2>Rawat pakaianmu dengan lebih mudah.</h2>
                 <p>{{ $laundry->description ?: 'Laundry lokal yang siap membantu kebutuhan perawatan pakaianmu.' }}</p>
-                <div class="detail-facts"><span><small>ALAMAT</small><strong>{{ $laundry->address }}</strong></span><span><small>TELEPON</small><strong>{{ $laundry->store_phone }}</strong></span><span><small>PEMILIK</small><strong>{{ $laundry->owner_name }}</strong></span></div>
+                <div class="detail-facts">
+                    <span><small>ALAMAT</small><strong>{{ $laundry->address }}</strong></span><span><small>TELEPON</small><strong>{{ $laundry->store_phone }}</strong></span><span><small>PEMILIK</small><strong>{{ $laundry->owner_name }}</strong></span>
+                </div>
             </section>
             <section class="detail-services" aria-labelledby="servicesHeading">
-                <div class="section-heading"><div><p class="overline">PILIHAN PERAWATAN</p><h2 id="servicesHeading">Layanan tersedia</h2></div></div>
+                <div class="section-heading">
+                    <div>
+                        <p class="overline">PILIHAN PERAWATAN</p>
+                        <h2 id="servicesHeading">Layanan tersedia</h2>
+                    </div>
+                </div>
                 <div class="detail-service-list">
                     @forelse ($services as $service)
                         <article class="detail-service-card">
                             <div class="service-card-photo" role="img" aria-label="Pakaian bersih"></div>
-                            <div class="service-card-copy"><div class="service-card-heading"><h3>{{ $service->name }}</h3>@if ($service->original_price && $service->original_price > $service->price && (!$service->promo_until || $service->promo_until >= today()->toDateString()))<span class="package-tag">{{ $service->promo_label ?: 'PROMO' }}</span>@endif</div><p>{{ $service->description ?: 'Perawatan pakaian oleh ' . $laundry->store_name }}</p><small>Estimasi {{ $service->duration_hours }} jam</small><div class="service-price"><strong>Rp {{ number_format($service->price, 0, ',', '.') }}</strong>@if ($service->original_price && $service->original_price > $service->price)<del>Rp {{ number_format($service->original_price, 0, ',', '.') }}</del>@endif</div></div>
-                            <button class="primary-button service-order-button" type="button" data-order-service="{{ $service->id }}">Pesan</button>
+                            <div class="service-card-copy">
+                                <div class="service-card-heading">
+                                    <h3>{{ $service->name }}</h3>
+                                    @if (
+                                        $service->original_price &&
+                                            $service->original_price > $service->price &&
+                                            (!$service->promo_until || $service->promo_until >= today()->toDateString()))
+                                        <span class="package-tag">{{ $service->promo_label ?: 'PROMO' }}</span>
+                                    @endif
+                                </div>
+                                <p>{{ $service->description ?: 'Perawatan pakaian oleh ' . $laundry->store_name }}</p>
+                                <small>Estimasi {{ $service->duration_hours }} jam</small>
+                                <div class="service-price"><strong>Rp
+                                        {{ number_format($service->price, 0, ',', '.') }}</strong>
+                                    @if ($service->original_price && $service->original_price > $service->price)
+                                        <del>Rp {{ number_format($service->original_price, 0, ',', '.') }}</del>
+                                    @endif
+                                </div>
+                            </div>
+                            <button class="primary-button service-order-button" type="button"
+                                data-order-service="{{ $service->id }}">Pesan</button>
                         </article>
                     @empty
-                        <div class="empty-discovery"><span>◈</span><h3>Belum ada layanan aktif</h3><p>Laundry ini belum menambahkan layanan untuk dipesan.</p></div>
+                        <div class="empty-discovery"><span>◈</span>
+                            <h3>Belum ada layanan aktif</h3>
+                            <p>Laundry ini belum menambahkan layanan untuk dipesan.</p>
+                        </div>
                     @endforelse
                 </div>
             </section>
@@ -46,19 +90,58 @@
 
         @if ($services->isNotEmpty())
             <section class="booking-section" id="booking-form" hidden>
-                <div class="booking-intro"><p class="overline">PESAN SEKARANG</p><h2>Detail cucianmu</h2><p>Pilih kebutuhan cucian dan cara penyerahan. Laundry akan menimbang cucian saat diterima sebelum tagihan dibuat.</p></div>
+                <div class="booking-intro">
+                    <p class="overline">PESAN SEKARANG</p>
+                    <h2>Detail cucianmu</h2>
+                    <p>Pilih kebutuhan cucian dan cara penyerahan. Laundry akan menimbang cucian saat diterima sebelum
+                        tagihan dibuat.</p>
+                </div>
                 <form class="booking-form" action="{{ route('orders.store', $laundry->id) }}" method="POST">@csrf
-                    <label>Paket layanan<select name="service_id" id="serviceSelect" required>@foreach ($services as $service)<option value="{{ $service->id }}" data-price="{{ $service->price }}" @selected((string) request('service') === (string) $service->id)>{{ $service->name }} · Rp {{ number_format($service->price, 0, ',', '.') }}</option>@endforeach</select></label>
-                    <div class="form-grid"><label>Jenis pakaian<select name="garment_type" required><option value="kiloan">Pakaian kiloan</option><option value="pakaian">Pakaian satuan</option><option value="selimut">Selimut</option><option value="sepatu">Sepatu</option><option value="lainnya">Lainnya</option></select></label><label>Jenis jasa cuci<select name="wash_type" required><option value="cuci">Cuci</option><option value="setrika">Setrika</option><option value="cuci_setrika">Cuci dan setrika</option></select></label></div>
-                    <fieldset class="delivery-choice"><legend>Cara penyerahan cucian</legend><label class="delivery-option"><input type="radio" name="delivery_method" value="dropoff" data-pickup-fee="0" checked><span><strong>Antar sendiri</strong><small>Drop-off langsung ke tempat laundry</small></span><b>Rp0</b></label><label class="delivery-option"><input type="radio" name="delivery_method" value="pickup" data-pickup-fee="{{ $pickupFee }}"><span><strong>Jemput cucian</strong><small>Kurir laundry menjemput ke alamatmu</small></span><b>+ Rp {{ number_format($pickupFee, 0, ',', '.') }}</b></label></fieldset>
-                    <label>Catatan untuk laundry<input type="text" name="notes" maxlength="500" placeholder="Contoh: alamat penjemputan, patokan, atau pisahkan pakaian putih"></label>
-                    <div class="booking-footer"><p><strong data-rate-preview>Rp {{ number_format($services->firstWhere('id', request('service'))?->price ?? $services->first()->price, 0, ',', '.') }} / kg</strong><br>Tagihan final dihitung owner setelah cucian ditimbang.</p><button class="primary-button" type="submit">Ajukan cucian <span>→</span></button></div>
+                    <label>Paket layanan<select name="service_id" id="serviceSelect" required>
+                            @foreach ($services as $service)
+                                <option value="{{ $service->id }}" data-price="{{ $service->price }}"
+                                    @selected((string) request('service') === (string) $service->id)>{{ $service->name }} · Rp
+                                    {{ number_format($service->price, 0, ',', '.') }}</option>
+                            @endforeach
+                        </select></label>
+                    <div class="form-grid"><label>Jenis pakaian<select name="garment_type" required>
+                                <option value="kiloan">Pakaian kiloan</option>
+                                <option value="pakaian">Pakaian satuan</option>
+                                <option value="selimut">Selimut</option>
+                                <option value="sepatu">Sepatu</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select></label><label>Jenis jasa cuci<select name="wash_type" required>
+                                <option value="cuci">Cuci</option>
+                                <option value="setrika">Setrika</option>
+                                <option value="cuci_setrika">Cuci dan setrika</option>
+                            </select></label></div>
+                    <fieldset class="delivery-choice">
+                        <legend>Cara penyerahan cucian</legend><label class="delivery-option"><input type="radio"
+                                name="delivery_method" value="dropoff" data-pickup-fee="0" checked><span><strong>Antar
+                                    sendiri</strong><small>Drop-off langsung ke tempat
+                                    laundry</small></span><b>Rp0</b></label><label class="delivery-option"><input
+                                type="radio" name="delivery_method" value="pickup"
+                                data-pickup-fee="{{ $pickupFee }}"><span><strong>Jemput cucian</strong><small>Kurir
+                                    laundry menjemput ke alamatmu</small></span><b>+ Rp
+                                {{ number_format($pickupFee, 0, ',', '.') }}</b></label>
+                    </fieldset>
+                    <label>Catatan untuk laundry<input type="text" name="notes" maxlength="500"
+                            placeholder="Contoh: alamat penjemputan, patokan, atau pisahkan pakaian putih"></label>
+                    <div class="booking-footer">
+                        <p><strong data-rate-preview>Rp
+                                {{ number_format($services->firstWhere('id', request('service'))?->price ?? $services->first()->price, 0, ',', '.') }}
+                                / kg</strong><br>Tagihan final dihitung owner setelah cucian ditimbang.</p><button
+                            class="primary-button" type="submit">Ajukan cucian <span>→</span></button>
+                    </div>
                 </form>
             </section>
         @endif
     </main>
 
-    <footer class="customer-footer"><a class="customer-brand" href="{{ route('dashboard') }}"><span class="brand-symbol">L</span><span>Laundry<span>ku</span></span></a><span>Jasa laundry lokal dalam satu tempat.</span><a href="{{ route('profile', ['tab' => 'orders']) }}">Riwayat pesanan</a></footer>
+    <footer class="customer-footer"><a class="customer-brand" href="{{ route('dashboard') }}"><span
+                class="brand-symbol">L</span><span>Laundry<span>ku</span></span></a><span>Jasa laundry lokal dalam satu
+            tempat.</span><a href="{{ route('profile', ['tab' => 'orders']) }}">Riwayat pesanan</a></footer>
     <script src="{{ asset('user/user.js') }}" defer></script>
 </body>
+
 </html>
