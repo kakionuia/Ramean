@@ -24,17 +24,19 @@ class AuthController extends Controller
         $request->validate([
             'name'          => 'required|string|max:255',
             'email'         => 'required|string|email|max:255|unique:users',
+            'phone'         => 'required|string|max:20|unique:users',
             'address'       => 'required|string|max:255',
-            'domisili'      => 'required|string',
-            'sub_domisili'  => 'required|string',
-            'kecamatan'     => 'required|string',
-            'wilayah_akhir' => 'required|string', // Desa atau Kelurahan terakhir
+            'domisili'      => 'nullable|string|max:100',
+            'sub_domisili'  => 'nullable|string|max:100',
+            'kecamatan'     => 'nullable|string|max:100',
+            'wilayah_akhir' => 'nullable|string|max:100',
             'password'      => 'required|string|min:8|confirmed',
         ]);
 
         $user = User::create([
             'name'          => $request->name,
             'email'         => $request->email,
+            'phone'         => $request->phone,
             'address'       => $request->address,
             'domisili'      => $request->domisili,
             'sub_domisili'  => $request->sub_domisili,
@@ -59,20 +61,26 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => 'required|email',
+            'identity' => 'required|string',
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials, $request->has('remember'))) {
+        $identityField = filter_var($credentials['identity'], FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        $loginCredentials = [
+            $identityField => $credentials['identity'],
+            'password' => $credentials['password'],
+        ];
+
+        if (Auth::attempt($loginCredentials, $request->boolean('remember'))) {
             $user = Auth::user();
 
             if ($user->role !== 'admin' && $user->status !== 'active') {
                 Auth::logout();
                 return back()->withErrors([
-                    'email' => $user->status === 'pending'
+                    'identity' => $user->status === 'pending'
                         ? 'Akun masih menunggu persetujuan admin.'
                         : 'Akun ini belum dapat digunakan. Hubungi admin.',
-                ])->onlyInput('email');
+                ])->onlyInput('identity');
             }
 
             $request->session()->regenerate();
@@ -89,8 +97,8 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Kredensial yang Anda masukkan tidak cocok dengan data kami.',
-        ])->onlyInput('email');
+            'identity' => 'Email/nomor WhatsApp atau password tidak cocok dengan data kami.',
+        ])->onlyInput('identity');
     }
 
     // Proses Logout
@@ -101,6 +109,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('success', 'Berhasil logout!');
+        return redirect()->route('home')->with('success', 'Berhasil logout!');
     }
 }

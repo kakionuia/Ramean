@@ -12,6 +12,9 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// URL alternatif yang sering digunakan untuk membuka halaman awal.
+Route::redirect('/home', '/#home')->name('welcome');
+
 // Rute untuk Tamu (Guest Only)
 Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
