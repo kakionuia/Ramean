@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Daftar Owner Laundry</title>
+    <meta name="theme-color" content="#f5f7ff">
+    <title>Daftar Mitra Laundry · Washly</title>
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
 
 <body class="auth-page">

@@ -41,6 +41,10 @@ class OwnerController extends Controller
 
     public function dashboard()
     {
+        if (Auth::user()?->role === 'owner' && Auth::user()?->status === 'pending') {
+            return view('owner.pending', ['owner' => Auth::user()]);
+        }
+
         $laundry = $this->laundry();
 
         return $this->page('dashboard', [

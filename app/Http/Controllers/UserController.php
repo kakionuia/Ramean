@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
@@ -18,78 +19,95 @@ class UserController extends Controller
     public function home(Request $request)
     {
         $this->customer();
-        $search = trim((string) $request->query('q', ''));
-        $location = trim((string) $request->query('location', ''));
-        $customerDomisili = Auth::user()->domisili;
 
-        $laundryQuery = DB::table('laundries')
-            ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
-            ->where('owners.role', 'owner')
-            ->where('owners.status', 'active')
-            ->whereNotNull('owners.domisili')
-            ->where('owners.domisili', $customerDomisili)
-            ->select('laundries.*', 'owners.name as owner_name', 'owners.kecamatan', 'owners.domisili');
+        $orderStats = DB::table('laundry_transactions')
+            ->where('user_id', Auth::id())
+            ->selectRaw("COUNT(CASE WHEN status IN ('pending', 'processing') THEN 1 END) as active, COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing, COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed")
+            ->first();
 
-        if ($search !== '') {
-            $laundryQuery->where(function ($query) use ($search) {
-                $query->where('laundries.store_name', 'like', '%'.$search.'%')
-                    ->orWhere('laundries.address', 'like', '%'.$search.'%')
-                    ->orWhere('laundries.description', 'like', '%'.$search.'%')
-                    ->orWhereExists(function ($services) use ($search) {
-                        $services->selectRaw('1')->from('owner_services')
-                            ->whereColumn('owner_services.laundry_id', 'laundries.id')
-                            ->where('owner_services.is_active', true)
-                            ->where('owner_services.name', 'like', '%'.$search.'%');
-                    });
-            });
-        }
+        $orders = DB::table('laundry_transactions')
+            ->join('laundries', 'laundries.id', '=', 'laundry_transactions.laundry_id')
+            ->where('laundry_transactions.user_id', Auth::id())
+            ->select('laundry_transactions.*', 'laundries.store_name')
+            ->latest('laundry_transactions.created_at');
 
-        if ($location !== '') {
-            $laundryQuery->where('laundries.address', 'like', '%'.$location.'%');
-        }
+        $recentOrders = (clone $orders)->limit(5)->get();
+        $activeOrder = (clone $orders)->whereIn('laundry_transactions.status', ['pending', 'processing'])->first()
+            ?? (clone $orders)->where('laundry_transactions.status', 'completed')->first();
+        $notifications = (clone $orders)->limit(3)->get();
 
-        $laundries = $laundryQuery->orderBy('laundries.store_name')->get()->map(function ($laundry) {
-            $laundry->services = DB::table('owner_services')
-                ->where('laundry_id', $laundry->id)
-                ->where('is_active', true)
-                ->orderBy('price')
-                ->get();
-
-            return $laundry;
-        });
-
-        $promos = DB::table('owner_services')
+        $homePromo = DB::table('owner_services')
             ->join('laundries', 'laundries.id', '=', 'owner_services.laundry_id')
             ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
-            ->whereNotNull('owners.domisili')
-            ->where('owners.domisili', $customerDomisili)
             ->where('owner_services.is_active', true)
             ->whereNotNull('owner_services.original_price')
             ->whereColumn('owner_services.original_price', '>', 'owner_services.price')
             ->where(function ($query) {
-                $query->whereNull('owner_services.promo_until')->orWhereDate('owner_services.promo_until', '>=', today());
+                $query->whereNull('owner_services.promo_until')
+                    ->orWhereDate('owner_services.promo_until', '>=', today());
             })
-            ->select('owner_services.*', 'laundries.store_name', 'laundries.address')
+            ->select(
+                'owner_services.id as service_id',
+                'laundries.id as laundry_id',
+                'owner_services.name',
+                'owner_services.price',
+                'owner_services.original_price',
+                'owner_services.promo_label',
+                'laundries.store_name'
+            )
             ->latest('owner_services.updated_at')
-            ->limit(8)
-            ->get();
+            ->first();
 
-        $locations = $laundries->pluck('address')
-            ->flatMap(fn ($address) => array_slice(array_map('trim', explode(',', $address)), -2))
-            ->filter(fn ($part) => mb_strlen($part) >= 3)
-            ->unique()
-            ->take(8)
-            ->values();
+        return view('home', compact('recentOrders', 'activeOrder', 'orderStats', 'notifications', 'homePromo'));
+    }
 
-        $notifications = DB::table('laundry_transactions')
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->limit(3)
-            ->get();
+    public function discover(Request $request)
+    {
+        $this->customer();
 
-        return view('home', compact('laundries', 'promos', 'locations', 'notifications', 'search', 'location'));
+        $validated = $request->validate([
+            'area' => ['nullable', 'string', 'max:120'],
+            'sort' => ['nullable', 'in:recommended,price,rating'],
+        ]);
+        $area = trim($validated['area'] ?? '');
+        $sort = $validated['sort'] ?? 'recommended';
+
+        $laundries = DB::table('laundries')
+            ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
+            ->where('owners.role', 'owner')
+            ->where('owners.status', 'active')
+            ->select('laundries.*', 'owners.kecamatan', 'owners.domisili')
+            ->get()
+            ->map(function ($laundry) {
+                $laundry->services = DB::table('owner_services')
+                    ->where('laundry_id', $laundry->id)
+                    ->where('is_active', true)
+                    ->orderBy('price')
+                    ->get();
+                $reviews = DB::table('laundry_reviews')->where('laundry_id', $laundry->id);
+                $laundry->rating_average = (float) (clone $reviews)->avg('rating');
+                $laundry->rating_count = (int) (clone $reviews)->count();
+                $laundry->starting_price = $laundry->services->min('price');
+                $laundry->pickup_available = (float) ($laundry->pickup_fee ?? 0) > 0;
+
+                return $laundry;
+            })
+            ->filter(function ($laundry) use ($area) {
+                if ($area === '') return true;
+                return str_contains(mb_strtolower(implode(' ', array_filter([
+                    $laundry->store_name, $laundry->address, $laundry->kecamatan, $laundry->domisili,
+                ]))), mb_strtolower($area));
+            });
+
+        $laundries = (match ($sort) {
+            'price' => $laundries->sortBy(fn ($item) => $item->starting_price ?? PHP_FLOAT_MAX),
+            'rating' => $laundries->sortByDesc('rating_average'),
+            default => $laundries->sortBy('store_name'),
+        })->values();
+
+        return view('user.discover', compact('laundries', 'area', 'sort'));
     }
 
     public function showLaundry(int $laundry)
@@ -197,19 +215,117 @@ class UserController extends Controller
         $this->customer();
         $user = Auth::user();
         $wallet = DB::table('user_wallets')->where('user_id', $user->id)->first();
+        $activeTab = in_array($request->query('tab'), ['account', 'orders', 'wallet', 'addresses'], true)
+            ? $request->query('tab')
+            : 'account';
+        $statusFilter = in_array($request->query('status'), ['active', 'completed', 'cancelled'], true)
+            ? $request->query('status')
+            : 'all';
+
+        $transactionQuery = DB::table('laundry_transactions')
+            ->join('laundries', 'laundries.id', '=', 'laundry_transactions.laundry_id')
+            ->where('laundry_transactions.user_id', $user->id)
+            ->select('laundry_transactions.*', 'laundries.store_name');
+
+        if ($statusFilter === 'active') {
+            $transactionQuery->whereIn('laundry_transactions.status', ['pending', 'processing']);
+        } elseif ($statusFilter !== 'all') {
+            $transactionQuery->where('laundry_transactions.status', $statusFilter);
+        }
 
         return view('user.profile', [
             'user' => $user,
-            'activeTab' => $request->query('tab', 'account'),
+            'activeTab' => $activeTab,
+            'statusFilter' => $statusFilter,
+            'addresses' => DB::table('user_addresses')->where('user_id', $user->id)->orderByDesc('is_primary')->latest()->get(),
+            'primaryAddress' => DB::table('user_addresses')->where('user_id', $user->id)->orderByDesc('is_primary')->latest()->first(),
             'balance' => $wallet->balance ?? 0,
-            'transactions' => DB::table('laundry_transactions')
-                ->join('laundries', 'laundries.id', '=', 'laundry_transactions.laundry_id')
-                ->where('laundry_transactions.user_id', $user->id)
-                ->select('laundry_transactions.*', 'laundries.store_name')
-                ->latest('laundry_transactions.created_at')
-                ->paginate(10, ['*'], 'orders_page'),
+            'transactions' => $transactionQuery->latest('laundry_transactions.created_at')->paginate(10, ['*'], 'orders_page')->withQueryString(),
             'topups' => DB::table('user_wallet_topups')->where('user_id', $user->id)->latest()->limit(10)->get(),
         ]);
+    }
+
+    public function updateProfilePhoto(Request $request)
+    {
+        $this->customer();
+        $validated = $request->validate(['photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048']]);
+        $user = Auth::user();
+        $path = $validated['photo']->store('profile-photos', 'public');
+
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
+        $user->forceFill(['profile_photo_path' => $path])->save();
+
+        return back()->with('success', 'Foto profil berhasil diperbarui.');
+    }
+
+    public function storeAddress(Request $request)
+    {
+        $this->customer();
+        $validated = $request->validate([
+            'label' => ['required', 'string', 'max:80'],
+            'recipient_name' => ['required', 'string', 'max:120'],
+            'recipient_phone' => ['nullable', 'string', 'max:30'],
+            'address' => ['required', 'string', 'max:2000'],
+            'area' => ['nullable', 'string', 'max:160'],
+        ]);
+        $userId = Auth::id();
+        $isPrimary = $request->boolean('is_primary') || !DB::table('user_addresses')->where('user_id', $userId)->exists();
+
+        DB::transaction(function () use ($validated, $userId, $isPrimary) {
+            if ($isPrimary) {
+                DB::table('user_addresses')->where('user_id', $userId)->update(['is_primary' => false]);
+            }
+
+            DB::table('user_addresses')->insert($validated + [
+                'user_id' => $userId,
+                'is_primary' => $isPrimary,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($isPrimary) {
+                DB::table('users')->where('id', $userId)->update(['address' => $validated['address'], 'updated_at' => now()]);
+            }
+        });
+
+        return redirect()->route('profile', ['tab' => 'addresses'])->with('success', 'Alamat berhasil disimpan.');
+    }
+
+    public function setPrimaryAddress(int $address)
+    {
+        $this->customer();
+        $userId = Auth::id();
+        $record = DB::table('user_addresses')->where('id', $address)->where('user_id', $userId)->first();
+        abort_unless($record, 404);
+
+        DB::transaction(function () use ($record, $userId) {
+            DB::table('user_addresses')->where('user_id', $userId)->update(['is_primary' => false]);
+            DB::table('user_addresses')->where('id', $record->id)->update(['is_primary' => true, 'updated_at' => now()]);
+            DB::table('users')->where('id', $userId)->update(['address' => $record->address, 'updated_at' => now()]);
+        });
+
+        return redirect()->route('profile', ['tab' => 'addresses'])->with('success', 'Alamat utama berhasil diubah.');
+    }
+
+    public function deleteAddress(int $address)
+    {
+        $this->customer();
+        $record = DB::table('user_addresses')->where('id', $address)->where('user_id', Auth::id())->first();
+        abort_unless($record, 404);
+        DB::table('user_addresses')->where('id', $record->id)->delete();
+
+        if ($record->is_primary) {
+            $nextPrimary = DB::table('user_addresses')->where('user_id', Auth::id())->latest()->first();
+            if ($nextPrimary) {
+                DB::table('user_addresses')->where('id', $nextPrimary->id)->update(['is_primary' => true]);
+                DB::table('users')->where('id', Auth::id())->update(['address' => $nextPrimary->address, 'updated_at' => now()]);
+            }
+        }
+
+        return redirect()->route('profile', ['tab' => 'addresses'])->with('success', 'Alamat berhasil dihapus.');
     }
 
     public function showOrder(int $transaction)
@@ -226,7 +342,7 @@ class UserController extends Controller
         DB::table('laundry_messages')
             ->where('laundry_id', $order->laundry_id)
             ->where('user_id', Auth::id())
-            ->where('sender', 'owner')
+            ->whereIn('sender', ['owner', 'admin'])
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
@@ -266,7 +382,7 @@ class UserController extends Controller
         DB::table('laundry_messages')
             ->where('laundry_id', $order->laundry_id)
             ->where('user_id', Auth::id())
-            ->where('sender', 'owner')
+            ->whereIn('sender', ['owner', 'admin'])
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 

@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#f5f7ff">
     <title>Masuk — Washly</title>
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
 
 <body class="auth-page login-page">

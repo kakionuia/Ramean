@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Detail pesanan · Laundryku</title>
     <link rel="stylesheet" href="{{ asset('user/user.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
 
 <body class="customer-page">
@@ -183,13 +184,7 @@
             </div>
             <div class="order-chat-messages" id="userOrderChatMessages" aria-live="polite">
                 @forelse ($messages as $message)
-                    <article
-                        class="order-chat-message {{ $message->sender === 'customer' ? 'is-customer' : 'is-owner' }}"
-                        data-message-id="{{ $message->id }}">
-                        <strong>{{ $message->sender === 'customer' ? 'Saya' : $order->store_name }}</strong>
-                        <p>{{ $message->message }}</p>
-                        <small>{{ \Carbon\Carbon::parse($message->created_at)->format('d M, H:i') }}</small>
-                    </article>
+                    <article class="order-chat-message {{ $message->sender === 'customer' ? 'is-customer' : 'is-owner' }} {{ $message->sender === 'admin' ? 'is-admin' : '' }}" data-message-id="{{ $message->id }}"><strong>{{ $message->sender === 'customer' ? 'Saya' : ($message->sender === 'admin' ? 'Admin Washly' : $order->store_name) }}</strong><p>{{ $message->message }}</p><small>{{ \Carbon\Carbon::parse($message->created_at)->format('d M, H:i') }}</small></article>
                 @empty
                     <p class="order-chat-empty" data-chat-empty>Tanyakan status, waktu selesai, atau detail cucianmu
                         kepada laundry.</p>
@@ -210,6 +205,8 @@
                 class="brand-symbol">L</span><span>Laundry<span>ku</span></span></a><span>Jasa laundry lokal dalam satu
             tempat.</span><a href="{{ route('profile') }}">Profil saya</a></footer>
     <script src="{{ asset('user/user.js') }}" defer></script>
+    <script src="{{ asset('js/site-motion.js') }}" defer></script>
 </body>
 
 </html>
+

@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#f5f7ff">
     <title>Daftar — Washly</title>
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
 
 <body class="auth-page">
@@ -186,6 +187,12 @@
             const village = document.getElementById('wilayah_akhir');
             const error = document.getElementById('location-error');
             const api = 'https://www.emsifa.com/api-wilayah-indonesia/api';
+            const locationFields = [
+                [province, 'Provinsi'],
+                [regency, 'Kabupaten / kota'],
+                [district, 'Kecamatan'],
+                [village, 'Desa / kelurahan'],
+            ];
 
             const reset = (select, label) => {
                 select.replaceChildren(new Option(label, ''));
@@ -214,6 +221,30 @@
             const showError = message => {
                 error.textContent = message;
                 error.hidden = !message;
+            };
+
+            const enableManualLocation = () => {
+                locationFields.forEach(([select, label]) => {
+                    if (select.nextElementSibling?.classList.contains('region-fallback')) return;
+
+                    const input = document.createElement('input');
+                    input.className = 'region-fallback';
+                    input.id = `${select.id}_manual`;
+                    input.name = select.name;
+                    input.type = 'text';
+                    input.value = select.value;
+                    input.placeholder = `Masukkan ${label.toLowerCase()}`;
+                    input.autocomplete = 'address-level2';
+                    input.required = true;
+                    input.addEventListener('input', () => showError(''));
+
+                    const fieldLabel = document.querySelector(`label[for="${select.id}"]`);
+                    if (fieldLabel) fieldLabel.htmlFor = input.id;
+                    select.disabled = true;
+                    select.hidden = true;
+                    select.after(input);
+                });
+                showError('Data wilayah tidak dapat dimuat. Isi wilayah secara manual untuk melanjutkan.');
             };
 
             const loadRegencies = async (selected = '') => {
@@ -248,15 +279,15 @@
 
             province.addEventListener('change', () => {
                 showError('');
-                loadRegencies().catch(() => showError('Data kabupaten/kota gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+                loadRegencies().catch(enableManualLocation);
             });
             regency.addEventListener('change', () => {
                 showError('');
-                loadDistricts().catch(() => showError('Data kecamatan gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+                loadDistricts().catch(enableManualLocation);
             });
             district.addEventListener('change', () => {
                 showError('');
-                loadVillages().catch(() => showError('Data desa/kelurahan gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+                loadVillages().catch(enableManualLocation);
             });
 
             (async () => {
@@ -271,7 +302,7 @@
                         }
                     }
                 } catch {
-                    showError('Data provinsi gagal dimuat. Periksa koneksi lalu muat ulang halaman.');
+                    enableManualLocation();
                 }
             })();
         })();

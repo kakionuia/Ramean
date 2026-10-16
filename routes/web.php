@@ -29,6 +29,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [UserController::class, 'home'])->name('dashboard');
+    Route::get('/discover', [UserController::class, 'discover'])->name('laundries.discover');
     Route::get('/laundries/{laundry}', [UserController::class, 'showLaundry'])->name('laundry.show');
     Route::post('/laundries/{laundry}/orders', [UserController::class, 'storeOrder'])->name('orders.store');
     Route::post('/orders/{transaction}/confirm-qris', [UserController::class, 'confirmOrderQris'])->name('orders.confirm-qris');
@@ -37,6 +38,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/{transaction}/messages', [UserController::class, 'orderMessages'])->name('orders.messages');
     Route::post('/orders/{transaction}/messages', [UserController::class, 'sendOrderMessage'])->name('orders.messages.store');
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
+    Route::post('/profile/photo', [UserController::class, 'updateProfilePhoto'])->name('profile.photo');
+    Route::post('/profile/addresses', [UserController::class, 'storeAddress'])->name('profile.addresses.store');
+    Route::put('/profile/addresses/{address}/primary', [UserController::class, 'setPrimaryAddress'])->name('profile.addresses.primary');
+    Route::delete('/profile/addresses/{address}', [UserController::class, 'deleteAddress'])->name('profile.addresses.delete');
     Route::post('/profile/topups', [UserController::class, 'storeTopup'])->name('profile.topups.store');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -45,6 +50,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('owner')->name('owner.')->middleware('auth')->controller(OwnerController::class)->group(function () {
     Route::get('/dashboard', 'dashboard')->name('dashboard');
     Route::get('/transactions', 'transactions')->name('transactions');
+    Route::get('/transactions/latest', 'latestTransactions')->name('transactions.latest');
     Route::get('/transactions/{transaction}', 'transactionDetail')->name('transactions.show');
     Route::post('/transactions/{transaction}/delivery-status', 'updateDeliveryStatus')->name('transactions.delivery-status');
     Route::post('/transactions/{transaction}/weigh', 'weighTransaction')->name('transactions.weigh');
@@ -67,18 +73,27 @@ Route::prefix('owner')->name('owner.')->middleware('auth')->controller(OwnerCont
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->controller(AdminController::class)->group(function () {
     Route::get('/dashboard', 'dashboard')->name('dashboard');
+    Route::get('/profile', 'profile')->name('profile');
+    Route::put('/profile', 'updateProfile')->name('profile.update');
+    Route::post('/profile/photo', 'updateProfilePhoto')->name('profile.photo');
     Route::get('/owner-applications', 'ownerApplications')->name('applications');
+    Route::get('/owner-applications/{user}/document', 'downloadOwnerDocument')->name('applications.document');
     Route::post('/owner-applications/{user}/approve', 'approveOwner')->name('applications.approve');
     Route::post('/owner-applications/{user}/reject', 'rejectOwner')->name('applications.reject');
     Route::get('/accounts', 'accounts')->name('accounts');
+    Route::post('/accounts/owners', 'storeOwnerAccount')->name('accounts.owners.store');
     Route::put('/accounts/{user}', 'updateAccount')->name('accounts.update');
     Route::delete('/accounts/{user}', 'deleteAccount')->name('accounts.delete');
     Route::get('/catalog', 'catalog')->name('catalog');
+    Route::post('/catalog', 'storeService')->name('catalog.store');
+    Route::put('/catalog/{service}', 'updateService')->name('catalog.update');
     Route::delete('/catalog/{service}', 'deleteService')->name('catalog.delete');
     Route::get('/transactions', 'transactions')->name('transactions');
+    Route::get('/transactions/latest', 'latestTransactions')->name('transactions.latest');
     Route::get('/reviews', 'reviews')->name('reviews');
     Route::delete('/reviews/{review}', 'deleteReview')->name('reviews.delete');
     Route::get('/messages', 'messages')->name('messages');
+    Route::post('/messages/reply', 'replyMessage')->name('messages.reply');
     Route::get('/schedules', 'schedules')->name('schedules');
     Route::get('/topups', 'topups')->name('topups');
     Route::post('/topups/{topup}/approve', 'processTopup')->defaults('decision', 'approve')->name('topups.approve');

@@ -100,10 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Number(message.id) <= lastMessageId) return;
             userChatMessages.querySelector('[data-chat-empty]')?.remove();
             const bubble = document.createElement('article');
-            bubble.className = `order-chat-message ${message.sender === 'owner' ? 'is-owner' : 'is-customer'}`;
+            bubble.className = `order-chat-message ${message.sender === 'customer' ? 'is-customer' : 'is-owner'} ${message.sender === 'admin' ? 'is-admin' : ''}`;
             bubble.dataset.messageId = message.id;
             const author = document.createElement('strong');
-            author.textContent = message.sender === 'owner' ? userChat.dataset.laundryName : 'Saya';
+            author.textContent = message.sender === 'customer' ? 'Saya' : (message.sender === 'admin' ? 'Admin Washly' : userChat.dataset.laundryName);
             const body = document.createElement('p');
             body.textContent = message.message;
             const time = document.createElement('small');

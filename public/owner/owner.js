@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const appendMessage = (message) => {
             if (Number(message.id) <= lastMessageId) return;
             const bubble = document.createElement('div');
-            bubble.className = `message ${message.sender === 'owner' ? 'message-owner' : 'message-customer'}`;
+            bubble.className = `message ${message.sender === 'owner' ? 'message-owner' : (message.sender === 'admin' ? 'message-admin' : 'message-customer')}`;
             bubble.dataset.messageId = message.id;
             const body = document.createElement('p');
             body.textContent = message.message;

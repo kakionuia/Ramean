@@ -6,62 +6,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ ucfirst($section) }} · {{ $laundry->store_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('owner/owner.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
 
 <body>
-    @php
-        $sections = [
-            'dashboard' => ['Dashboard', '⌂'],
-            'transactions' => ['Riwayat transaksi', '↕'],
-            'services' => ['Produk & jasa', '◈'],
-            'finance' => ['Keuangan', 'Rp'],
-            'reviews' => ['Ulasan pelanggan', '☆'],
-            'chat' => ['Chat pelanggan', '✉'],
-            'settings' => ['Pengaturan', '⚙'],
-        ];
-        $titles = [
-            'dashboard' => 'Dashboard',
-            'transactions' => 'Riwayat transaksi pelanggan',
-            'transaction-detail' => 'Detail pesanan pelanggan',
-            'services' => 'Produk dan jasa',
-            'finance' => 'Keuangan laundry',
-            'reviews' => 'Ulasan pelanggan',
-            'chat' => 'Pesan pelanggan',
-            'settings' => 'Pengaturan laundry',
-        ];
-    @endphp
+@php
+    $sections = [
+        'dashboard' => ['Dashboard', '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>'],
+        'transactions' => ['Riwayat transaksi', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h13l-3-3M17 17H4l3 3M20 7v4M4 17v-4"/></svg>'],
+        'services' => ['Produk & jasa', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1 12H5L4 8Zm0 0 2-4h12l2 4M9 12h6"/></svg>'],
+        'finance' => ['Keuangan', '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/><circle cx="16" cy="14" r="2"/></svg>'],
+        'reviews' => ['Ulasan pelanggan', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg>'],
+        'chat' => ['Chat pelanggan', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.8A8 8 0 1 1 20 11.5Z"/><path d="M8 12h8M8 9h5"/></svg>'],
+        'settings' => ['Pengaturan', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19 15 1.5 1.2-1.5 2.5-1.8-.7a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.8.7-1.5-2.5L7.6 15a8 8 0 0 1 0-2l-1.5-1.2 1.5-2.5 1.8.7a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.8-.7 1.5 2.5L19 13a8 8 0 0 1 0 2Z"/></svg>'],
+    ];
+    $titles = [
+        'dashboard' => 'Dashboard',
+        'transactions' => 'Riwayat transaksi pelanggan',
+        'transaction-detail' => 'Detail pesanan pelanggan',
+        'services' => 'Produk dan jasa',
+        'finance' => 'Keuangan laundry',
+        'reviews' => 'Ulasan pelanggan',
+        'chat' => 'Pesan pelanggan',
+        'settings' => 'Pengaturan laundry',
+    ];
+@endphp
 
-    <div class="owner-shell">
-        <aside class="sidebar" id="ownerSidebar">
-            <a class="brand" href="{{ route('owner.dashboard') }}">
-                <span class="brand-mark">L</span>
-                <span><strong>{{ $laundry->store_name }}</strong><small>OWNER WORKSPACE</small></span>
-            </a>
-            <div class="sidebar-label">MENU UTAMA</div>
-            <nav class="side-nav" aria-label="Navigasi owner">
-                @foreach ($sections as $key => [$label, $icon])
-                    <a href="{{ route('owner.' . $key) }}"
-                        class="nav-link {{ $section === $key || ($section === 'transaction-detail' && $key === 'transactions') ? 'active' : '' }}">
-                        <span class="nav-icon" aria-hidden="true">{{ $icon }}</span>
-                        <span>{{ $label }}</span>
-                        @if ($key === 'reviews' && isset($stats['unanswered_reviews']) && $stats['unanswered_reviews'] > 0)
-                            <span class="nav-count">{{ $stats['unanswered_reviews'] }}</span>
-                        @endif
-                    </a>
-                @endforeach
-            </nav>
-            <div class="sidebar-bottom">
-                <div class="owner-mini">
-                    <span class="avatar">{{ strtoupper(substr($owner->name, 0, 1)) }}</span>
-                    <span><strong>{{ $owner->name }}</strong><small>Pemilik laundry</small></span>
-                </div>
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-                    <button class="logout-button" type="submit"><span aria-hidden="true">↪</span> Keluar</button>
-                </form>
+<div class="owner-shell">
+    <aside class="sidebar" id="ownerSidebar">
+        <a class="brand" href="{{ route('owner.dashboard') }}">
+            <span class="brand-mark">L</span>
+            <span><strong>{{ $laundry->store_name }}</strong><small>OWNER WORKSPACE</small></span>
+        </a>
+        <div class="sidebar-label">MENU UTAMA</div>
+        <nav class="side-nav" aria-label="Navigasi owner">
+            @foreach ($sections as $key => [$label, $icon])
+                <a href="{{ route('owner.' . $key) }}" class="nav-link {{ $section === $key || ($section === 'transaction-detail' && $key === 'transactions') ? 'active' : '' }}">
+                    <span class="nav-icon" aria-hidden="true">{!! $icon !!}</span>
+                    <span>{{ $label }}</span>
+                    @if ($key === 'reviews' && isset($stats['unanswered_reviews']) && $stats['unanswered_reviews'] > 0)
+                        <span class="nav-count">{{ $stats['unanswered_reviews'] }}</span>
+                    @endif
+                </a>
+            @endforeach
+        </nav>
+        <div class="sidebar-bottom">
+            <div class="owner-mini">
+                <span class="avatar">{{ strtoupper(substr($owner->name, 0, 1)) }}</span>
+                <span><strong>{{ $owner->name }}</strong><small>Pemilik laundry</small></span>
             </div>
-        </aside>
+            <form action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button class="logout-button" type="submit"><span aria-hidden="true">↪</span> Keluar</button>
+            </form>
+        </div>
+    </aside>
 
         <main class="main-area">
             <header class="topbar">
@@ -543,151 +546,74 @@
                             <div class="pagination">{{ $expenseRows->links() }}</div>
                         @endif
                     </section>
-                @elseif ($section === 'reviews')
-                    <section class="review-list">
-                        @forelse ($reviews as $review)
-                            <article class="panel review-item">
-                                <div class="review-top">
-                                    <div>
-                                        <h2>{{ $review->customer_name }}</h2>
-                                        <p>{{ \Carbon\Carbon::parse($review->created_at)->format('d M Y, H:i') }}</p>
-                                    </div><span
-                                        class="rating">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
-                                        <b>{{ $review->rating }}/5</b></span>
-                                </div>
-                                <p class="review-comment">{{ $review->comment }}</p>
-                                @if ($review->owner_reply)
-                                    <div class="owner-reply"><small>Balasan Anda</small>
-                                        <p>{{ $review->owner_reply }}</p>
-                                </div>@else<form class="reply-form"
-                                        action="{{ route('owner.reviews.reply', $review->id) }}" method="POST">
-                                        @csrf
-                                        <textarea name="owner_reply" required maxlength="2000" rows="2"
-                                            placeholder="Tulis balasan untuk pelanggan..."></textarea><button class="button button-dark"
-                                            type="submit">Kirim balasan</button>
-                                    </form>
-                                @endif
-                                <form action="{{ route('owner.reviews.delete', $review->id) }}" method="POST"
-                                    class="delete-confirm review-delete">@csrf @method('DELETE')<button
-                                        class="text-link danger-text" type="submit">Hapus ulasan</button></form>
-                            </article>
+                </div>
+                <section class="panel"><div class="panel-heading"><div><h2>Riwayat pengeluaran</h2><p>Catatan biaya terbaru.</p></div></div><div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Keperluan</th><th>Kategori</th><th>Jumlah</th></tr></thead><tbody>@forelse ($expenseRows as $expense)<tr><td>{{ \Carbon\Carbon::parse($expense->spent_at)->format('d M Y') }}</td><td class="cell-strong">{{ $expense->description }}</td><td>{{ $expense->category }}</td><td class="amount-negative">− Rp {{ number_format($expense->amount, 0, ',', '.') }}</td></tr>@empty<tr><td colspan="4" class="empty-cell">Belum ada pengeluaran dicatat.</td></tr>@endforelse</tbody></table></div>@if ($expenseRows->hasPages())<div class="pagination">{{ $expenseRows->links() }}</div>@endif</section>
+
+            @elseif ($section === 'reviews')
+                <section class="review-list">
+                    @forelse ($reviews as $review)
+                        <article class="panel review-item"><div class="review-top"><div><h2>{{ $review->customer_name }}</h2><p>{{ \Carbon\Carbon::parse($review->created_at)->format('d M Y, H:i') }}</p></div><span class="rating">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }} <b>{{ $review->rating }}/5</b></span></div><p class="review-comment">{{ $review->comment }}</p>
+                            @if ($review->owner_reply)<div class="owner-reply"><small>Balasan Anda</small><p>{{ $review->owner_reply }}</p></div>@else<form class="reply-form" action="{{ route('owner.reviews.reply', $review->id) }}" method="POST">@csrf<textarea name="owner_reply" required maxlength="2000" rows="2" placeholder="Tulis balasan untuk pelanggan..."></textarea><button class="button button-dark" type="submit">Kirim balasan</button></form>@endif
+                            <form action="{{ route('owner.reviews.delete', $review->id) }}" method="POST" class="delete-confirm review-delete">@csrf @method('DELETE')<button class="text-link danger-text" type="submit">Hapus ulasan</button></form>
+                        </article>
+                    @empty
+                        <section class="panel empty-panel"><span class="empty-symbol">☆</span><h2>Belum ada ulasan</h2><p>Ulasan pelanggan akan muncul di halaman ini.</p></section>
+                    @endforelse
+                    @if ($reviews->hasPages())<div class="pagination">{{ $reviews->links() }}</div>@endif
+                </section>
+
+            @elseif ($section === 'chat')
+                <section class="chat-layout" data-chat-root data-messages-url="{{ route('owner.chat.messages') }}" data-reply-url="{{ route('owner.chat.reply') }}" data-customer="{{ $selectedCustomer }}" data-user-id="{{ $selectedUserId ?? '' }}">
+                    <aside class="chat-contacts"><div class="contact-heading"><h2>Pelanggan</h2><span>{{ $customers->count() }}</span></div>
+                        @forelse ($customers as $customer)
+                            <a class="contact-link {{ $selectedCustomer === $customer->customer_name && (string) $selectedUserId === (string) $customer->user_id ? 'selected' : '' }}" href="{{ route('owner.chat', ['customer' => $customer->customer_name, 'user_id' => $customer->user_id]) }}"><span class="avatar avatar-small">{{ strtoupper(substr($customer->customer_name, 0, 1)) }}</span><span><strong>{{ $customer->customer_name }}</strong><small>{{ $customer->user_id ? 'Pelanggan terdaftar' : 'Thread lama' }}</small></span></a>
                         @empty
-                            <section class="panel empty-panel"><span class="empty-symbol">☆</span>
-                                <h2>Belum ada ulasan</h2>
-                                <p>Ulasan pelanggan akan muncul di halaman ini.</p>
-                            </section>
+                            <p class="empty-copy contact-empty">Belum ada pesan dari pelanggan.</p>
                         @endforelse
-                        @if ($reviews->hasPages())
-                            <div class="pagination">{{ $reviews->links() }}</div>
-                        @endif
-                    </section>
-                @elseif ($section === 'chat')
-                    <section class="chat-layout" data-chat-root
-                        data-messages-url="{{ route('owner.chat.messages') }}"
-                        data-reply-url="{{ route('owner.chat.reply') }}" data-customer="{{ $selectedCustomer }}"
-                        data-user-id="{{ $selectedUserId ?? '' }}">
-                        <aside class="chat-contacts">
-                            <div class="contact-heading">
-                                <h2>Pelanggan</h2><span>{{ $customers->count() }}</span>
-                            </div>
-                            @forelse ($customers as $customer)
-                                <a class="contact-link {{ $selectedCustomer === $customer->customer_name && (string) $selectedUserId === (string) $customer->user_id ? 'selected' : '' }}"
-                                    href="{{ route('owner.chat', ['customer' => $customer->customer_name, 'user_id' => $customer->user_id]) }}"><span
-                                        class="avatar avatar-small">{{ strtoupper(substr($customer->customer_name, 0, 1)) }}</span><span><strong>{{ $customer->customer_name }}</strong><small>{{ $customer->user_id ? 'Pelanggan terdaftar' : 'Thread lama' }}</small></span></a>
-                            @empty
-                                <p class="empty-copy contact-empty">Belum ada pesan dari pelanggan.</p>
-                            @endforelse
-                        </aside>
-                        <div class="chat-window">
-                            @if ($selectedCustomer)
-                                <div class="chat-header"><span
-                                        class="avatar avatar-small">{{ strtoupper(substr($selectedCustomer, 0, 1)) }}</span>
-                                    <div><strong>{{ $selectedCustomer }}</strong><small><span
-                                                class="status-dot"></span> Percakapan pelanggan</small></div><span
-                                        class="live-label">Pembaruan otomatis</span>
-                                </div>
-                                <div class="messages" id="chatMessages" aria-live="polite">
-                                    @foreach ($messages as $message)
-                                        <div class="message {{ $message->sender === 'owner' ? 'message-owner' : 'message-customer' }}"
-                                            data-message-id="{{ $message->id }}">
-                                            <p>{{ $message->message }}</p>
-                                            <small>{{ \Carbon\Carbon::parse($message->created_at)->format('H:i') }}</small>
-                                        </div>
-                                    @endforeach
-                                </div>
-                                <form class="chat-compose" id="chatReplyForm"><input name="message"
-                                        id="chatMessageInput" autocomplete="off" maxlength="2000"
-                                        placeholder="Tulis pesan..." required><button class="button button-dark"
-                                        type="submit">Kirim <span>→</span></button></form>
-                            @else
-                                <div class="chat-empty"><span class="empty-symbol">✉</span>
-                                    <h2>Pilih percakapan</h2>
-                                    <p>Percakapan pelanggan akan tampil di daftar sebelah kiri.</p>
-                                </div>
-                            @endif
-                        </div>
-                    </section>
-                @elseif ($section === 'settings')
-                    <section class="panel settings-panel">
-                        <div class="panel-heading">
-                            <div>
-                                <h2>Informasi laundry</h2>
-                                <p>Informasi ini ditampilkan kepada pelanggan.</p>
-                            </div>
-                        </div>
-                        <form class="settings-form" action="{{ route('owner.settings.update') }}" method="POST">
-                            @csrf @method('PUT')
-                            <div class="settings-fields"><label>Nama laundry<input name="store_name"
-                                        value="{{ old('store_name', $laundry->store_name) }}" required
-                                        maxlength="255"></label><label>Nomor telepon<input name="store_phone"
-                                        value="{{ old('store_phone', $laundry->store_phone) }}" required
-                                        maxlength="30"></label><label>Biaya antar-jemput (Rp)<input name="pickup_fee"
-                                        type="number" min="0" max="1000000" step="500"
-                                        value="{{ old('pickup_fee', $laundry->pickup_fee ?? 5000) }}"
-                                        required></label><label class="full-field">Alamat
-                                    <textarea name="address" rows="2" required>{{ old('address', $laundry->address) }}</textarea>
-                                </label><label class="full-field">Deskripsi
-                                    <textarea name="description" rows="3">{{ old('description', $laundry->description) }}</textarea>
-                                </label></div>
-                            <div class="schedule-heading">
-                                <div>
-                                    <h2>Jadwal operasional</h2>
-                                    <p>Atur jam buka untuk setiap hari.</p>
-                                </div>
-                            </div>
-                            <div class="schedule-list">
-                                @foreach ($days as $day => $dayName)
-                                    @php $dayHour = $hours->get($day); @endphp
-                                    <div class="schedule-row" data-schedule-row>
-                                        <strong>{{ $dayName }}</strong>
-                                        <label class="time-field"><span class="sr-only">Jam buka
-                                                {{ strtolower($dayName) }}</span><input
-                                                name="hours[{{ $day }}][opens_at]" type="time"
-                                                value="{{ $dayHour?->opens_at ? substr($dayHour->opens_at, 0, 5) : '08:00' }}"
-                                                data-time-input></label>
-                                        <span class="time-separator">sampai</span>
-                                        <label class="time-field"><span class="sr-only">Jam tutup
-                                                {{ strtolower($dayName) }}</span><input
-                                                name="hours[{{ $day }}][closes_at]" type="time"
-                                                value="{{ $dayHour?->closes_at ? substr($dayHour->closes_at, 0, 5) : '17:00' }}"
-                                                data-time-input></label>
-                                        <label class="closed-toggle"><input
-                                                name="hours[{{ $day }}][is_closed]" value="1"
-                                                type="checkbox" data-closed-toggle @checked($dayHour?->is_closed)>
-                                            Tutup</label>
-                                    </div>
+                    </aside>
+                    <div class="chat-window">
+                        @if ($selectedCustomer)
+                            <div class="chat-header"><span class="avatar avatar-small">{{ strtoupper(substr($selectedCustomer, 0, 1)) }}</span><div><strong>{{ $selectedCustomer }}</strong><small><span class="status-dot"></span> Percakapan pelanggan</small></div><span class="live-label">Pembaruan otomatis</span></div>
+                            <div class="messages" id="chatMessages" aria-live="polite">
+                                @foreach ($messages as $message)
+                                    <div class="message {{ $message->sender === 'owner' ? 'message-owner' : ($message->sender === 'admin' ? 'message-admin' : 'message-customer') }}" data-message-id="{{ $message->id }}"><p>{{ $message->message }}</p><small>{{ $message->sender === 'admin' ? 'Admin Washly · ' : '' }}{{ \Carbon\Carbon::parse($message->created_at)->format('H:i') }}</small></div>
                                 @endforeach
                             </div>
-                            <div class="settings-actions"><button class="button button-dark" type="submit">Simpan
-                                    pengaturan</button></div>
-                        </form>
-                    </section>
-                @endif
-            </div>
-        </main>
-    </div>
-    <div class="sidebar-scrim" id="sidebarScrim"></div>
-    <script src="{{ asset('owner/owner.js') }}" defer></script>
+                            <form class="chat-compose" id="chatReplyForm"><input name="message" id="chatMessageInput" autocomplete="off" maxlength="2000" placeholder="Tulis pesan..." required><button class="button button-dark" type="submit">Kirim <span>→</span></button></form>
+                        @else
+                            <div class="chat-empty"><span class="empty-symbol">✉</span><h2>Pilih percakapan</h2><p>Percakapan pelanggan akan tampil di daftar sebelah kiri.</p></div>
+                        @endif
+                    </div>
+                </section>
+
+            @elseif ($section === 'settings')
+                <section class="panel settings-panel"><div class="panel-heading"><div><h2>Informasi laundry</h2><p>Informasi ini ditampilkan kepada pelanggan.</p></div></div>
+                    <form class="settings-form" action="{{ route('owner.settings.update') }}" method="POST">@csrf @method('PUT')
+                        <div class="settings-fields"><label>Nama laundry<input name="store_name" value="{{ old('store_name', $laundry->store_name) }}" required maxlength="255"></label><label>Nomor telepon<input name="store_phone" value="{{ old('store_phone', $laundry->store_phone) }}" required maxlength="30"></label><label>Biaya antar-jemput (Rp)<input name="pickup_fee" type="number" min="0" max="1000000" step="500" value="{{ old('pickup_fee', $laundry->pickup_fee ?? 5000) }}" required></label><label class="full-field">Alamat<textarea name="address" rows="2" required>{{ old('address', $laundry->address) }}</textarea></label><label class="full-field">Deskripsi<textarea name="description" rows="3">{{ old('description', $laundry->description) }}</textarea></label></div>
+                        <div class="schedule-heading"><div><h2>Jadwal operasional</h2><p>Atur jam buka untuk setiap hari.</p></div></div>
+                        <div class="schedule-list">
+                            @foreach ($days as $day => $dayName)
+                                @php $dayHour = $hours->get($day); @endphp
+                                <div class="schedule-row" data-schedule-row>
+                                    <strong>{{ $dayName }}</strong>
+                                    <label class="time-field"><span class="sr-only">Jam buka {{ strtolower($dayName) }}</span><input name="hours[{{ $day }}][opens_at]" type="time" value="{{ $dayHour?->opens_at ? substr($dayHour->opens_at, 0, 5) : '08:00' }}" data-time-input></label>
+                                    <span class="time-separator">sampai</span>
+                                    <label class="time-field"><span class="sr-only">Jam tutup {{ strtolower($dayName) }}</span><input name="hours[{{ $day }}][closes_at]" type="time" value="{{ $dayHour?->closes_at ? substr($dayHour->closes_at, 0, 5) : '17:00' }}" data-time-input></label>
+                                    <label class="closed-toggle"><input name="hours[{{ $day }}][is_closed]" value="1" type="checkbox" data-closed-toggle @checked($dayHour?->is_closed)> Tutup</label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="settings-actions"><button class="button button-dark" type="submit">Simpan pengaturan</button></div>
+                    </form>
+                </section>
+            @endif
+        </div>
+    </main>
+</div>
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+<script src="{{ asset('owner/owner.js') }}" defer></script>
+    <script src="{{ asset('js/site-motion.js') }}" defer></script>
 </body>
 
 </html>
+

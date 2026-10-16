@@ -14,6 +14,7 @@ class Laundry extends Model
         'address',
         'description',
         'logo',
+        'verification_document_path',
     ];
 
     public function user(): BelongsTo

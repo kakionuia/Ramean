@@ -21,7 +21,7 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'required|string|max:20|unique:users',
@@ -34,19 +34,22 @@ class AuthController extends Controller
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'domisili' => $request->domisili,
-            'sub_domisili' => $request->sub_domisili,
-            'kecamatan' => $request->kecamatan,
-            'wilayah_akhir' => $request->wilayah_akhir,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'address' => $validated['address'],
+            'domisili' => $validated['domisili'],
+            'sub_domisili' => $validated['sub_domisili'],
+            'kecamatan' => $validated['kecamatan'],
+            'wilayah_akhir' => $validated['wilayah_akhir'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'user',
+            'status' => 'active',
         ]);
 
         // Otomatis login setelah registrasi
         Auth::login($user);
+        $request->session()->regenerate();
 
         return redirect()->route('dashboard')->with('success', 'Registrasi berhasil!');
     }
@@ -65,16 +68,29 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $identityField = filter_var($credentials['identity'], FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
-        $loginCredentials = [
-            $identityField => $credentials['identity'],
-            'password' => $credentials['password'],
-        ];
+        $identity = trim($credentials['identity']);
+        if (filter_var($identity, FILTER_VALIDATE_EMAIL)) {
+            $loginCredentials = ['email' => $identity, 'password' => $credentials['password']];
+        } else {
+            $digits = preg_replace('/\D+/', '', $identity);
+            $phoneCandidates = array_filter(array_unique([
+                $identity,
+                $digits,
+                '+' . $digits,
+                str_starts_with($digits, '0') ? '62' . substr($digits, 1) : null,
+                str_starts_with($digits, '62') ? '0' . substr($digits, 2) : null,
+            ]));
+            $storedPhone = User::query()->whereIn('phone', $phoneCandidates)->value('phone');
+            $loginCredentials = [
+                'phone' => $storedPhone ?? $identity,
+                'password' => $credentials['password'],
+            ];
+        }
 
         if (Auth::attempt($loginCredentials, $request->boolean('remember'))) {
             $user = Auth::user();
 
-            if ($user->role !== 'admin' && $user->status !== 'active') {
+            if ($user->role !== 'admin' && $user->status !== 'active' && !($user->role === 'owner' && $user->status === 'pending')) {
                 Auth::logout();
 
                 return back()->withErrors([
@@ -87,14 +103,14 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             if ($user->role === 'admin') {
-                return redirect()->intended(route('admin.dashboard'))->with('success', 'Berhasil login!');
+                return redirect()->route('admin.dashboard')->with('success', 'Berhasil login!');
             }
 
             if ($user->role === 'owner') {
-                return redirect()->intended(route('owner.dashboard'))->with('success', 'Berhasil login!');
+                return redirect()->route('owner.dashboard')->with('success', 'Berhasil login!');
             }
 
-            return redirect()->intended('/dashboard')->with('success', 'Berhasil login!');
+            return redirect()->route('dashboard')->with('success', 'Berhasil login!');
         }
 
         return back()->withErrors([

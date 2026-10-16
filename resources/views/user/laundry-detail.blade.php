@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $laundry->store_name }} · Laundryku</title>
     <link rel="stylesheet" href="{{ asset('user/user.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
 
 <body class="customer-page">
@@ -142,6 +143,7 @@
                 class="brand-symbol">L</span><span>Laundry<span>ku</span></span></a><span>Jasa laundry lokal dalam satu
             tempat.</span><a href="{{ route('profile', ['tab' => 'orders']) }}">Riwayat pesanan</a></footer>
     <script src="{{ asset('user/user.js') }}" defer></script>
+    <script src="{{ asset('js/site-motion.js') }}" defer></script>
 </body>
 
 </html>
