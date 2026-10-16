@@ -20,9 +20,6 @@
     </header>
 
     <main class="auth-main">
-        <div class="auth-context login-context">
-            <span class="auth-pill">PORTAL PELANGGAN</span>
-        </div>
 
         <div class="label">
             <p>Punya laundry, mau daftar sebagai owner? <a href="{{ url('/register-owner') }}">Klik disini</a></p>
@@ -106,23 +103,15 @@
             </div>
             <div class="auth-footer-panel">
                 <p>Belum punya akun? <a class="auth-link" href="{{ route('register') }}">Daftar Sekarang</a></p>
-                <span class="auth-assurance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                <span class="auth-assurance">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="m12 3 8 3v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z" />
                         <path d="m9 12 2 2 4-4" />
                     </svg>Layanan laundry higienis, teratur, dan transparan.</span>
             </div>
         </section>
-        <div class="auth-bottom"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
-                    <path d="m9 12 2 2 4-4" />
-                </svg>Koneksi Aman</span><span>•</span><span><svg viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <path d="M4 13a8 8 0 0 1 16 0v5h-5v-5h5M4 13v5h5v-5H4Z" />
-                    <path d="M12 5v2" />
-                </svg>Bantuan Siaga 24 Jam</span></div>
+
     </main>
     <footer class="auth-legal">© {{ date('Y') }} Washly Laundry. Higienis, Teratur, dan Terpercaya.<span
             class="dot">•</span>Pusat Bantuan<span class="dot">•</span>Privasi</footer>

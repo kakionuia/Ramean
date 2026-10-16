@@ -20,11 +20,14 @@ class UserController extends Controller
         $this->customer();
         $search = trim((string) $request->query('q', ''));
         $location = trim((string) $request->query('location', ''));
+        $customerDomisili = Auth::user()->domisili;
 
         $laundryQuery = DB::table('laundries')
             ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
+            ->whereNotNull('owners.domisili')
+            ->where('owners.domisili', $customerDomisili)
             ->select('laundries.*', 'owners.name as owner_name', 'owners.kecamatan', 'owners.domisili');
 
         if ($search !== '') {
@@ -57,6 +60,11 @@ class UserController extends Controller
 
         $promos = DB::table('owner_services')
             ->join('laundries', 'laundries.id', '=', 'owner_services.laundry_id')
+            ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
+            ->where('owners.role', 'owner')
+            ->where('owners.status', 'active')
+            ->whereNotNull('owners.domisili')
+            ->where('owners.domisili', $customerDomisili)
             ->where('owner_services.is_active', true)
             ->whereNotNull('owner_services.original_price')
             ->whereColumn('owner_services.original_price', '>', 'owner_services.price')
@@ -68,7 +76,7 @@ class UserController extends Controller
             ->limit(8)
             ->get();
 
-        $locations = DB::table('laundries')->pluck('address')
+        $locations = $laundries->pluck('address')
             ->flatMap(fn ($address) => array_slice(array_map('trim', explode(',', $address)), -2))
             ->filter(fn ($part) => mb_strlen($part) >= 3)
             ->unique()
@@ -94,6 +102,8 @@ class UserController extends Controller
             ->where('laundries.id', $laundry)
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
+            ->whereNotNull('owners.domisili')
+            ->where('owners.domisili', Auth::user()->domisili)
             ->first();
         abort_unless($laundry, 404);
 
@@ -126,7 +136,15 @@ class UserController extends Controller
             ->first();
         abort_unless($service, 404, 'Layanan tidak tersedia.');
 
-        $laundryRecord = DB::table('laundries')->where('id', $laundry)->first();
+        $laundryRecord = DB::table('laundries')
+            ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
+            ->where('laundries.id', $laundry)
+            ->where('owners.role', 'owner')
+            ->where('owners.status', 'active')
+            ->whereNotNull('owners.domisili')
+            ->where('owners.domisili', Auth::user()->domisili)
+            ->select('laundries.*')
+            ->first();
         abort_unless($laundryRecord, 404);
 
         $washLabels = [

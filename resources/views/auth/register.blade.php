@@ -93,6 +93,35 @@
                                 required></div>
                     </div>
                     <div class="field">
+                        <label for="domisili">Provinsi Domisili</label>
+                        <div class="input-wrap"><select id="domisili" name="domisili"
+                                data-selected="{{ old('domisili') }}" required>
+                                <option value="">Memuat provinsi...</option>
+                            </select></div>
+                    </div>
+                    <div class="field">
+                        <label for="sub_domisili">Kabupaten / Kota</label>
+                        <div class="input-wrap"><select id="sub_domisili" name="sub_domisili"
+                                data-selected="{{ old('sub_domisili') }}" required disabled>
+                                <option value="">Pilih provinsi terlebih dahulu</option>
+                            </select></div>
+                    </div>
+                    <div class="field">
+                        <label for="kecamatan">Kecamatan</label>
+                        <div class="input-wrap"><select id="kecamatan" name="kecamatan"
+                                data-selected="{{ old('kecamatan') }}" required disabled>
+                                <option value="">Pilih kabupaten / kota terlebih dahulu</option>
+                            </select></div>
+                    </div>
+                    <div class="field">
+                        <label for="wilayah_akhir">Desa / Kelurahan</label>
+                        <div class="input-wrap"><select id="wilayah_akhir" name="wilayah_akhir"
+                                data-selected="{{ old('wilayah_akhir') }}" required disabled>
+                                <option value="">Pilih kecamatan terlebih dahulu</option>
+                            </select></div>
+                    </div>
+                    <p id="location-error" class="field-hint" role="alert" hidden></p>
+                    <div class="field">
                         <label for="password">Password <span class="field-hint">Min. 8 karakter</span></label>
                         <div class="input-wrap"><svg class="input-icon" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
@@ -148,6 +177,104 @@
             button.setAttribute('aria-label', input.type === 'password' ? 'Tampilkan password' :
                 'Sembunyikan password')
         }));
+    </script>
+    <script>
+        (() => {
+            const province = document.getElementById('domisili');
+            const regency = document.getElementById('sub_domisili');
+            const district = document.getElementById('kecamatan');
+            const village = document.getElementById('wilayah_akhir');
+            const error = document.getElementById('location-error');
+            const api = 'https://www.emsifa.com/api-wilayah-indonesia/api';
+
+            const reset = (select, label) => {
+                select.replaceChildren(new Option(label, ''));
+                select.disabled = true;
+            };
+
+            const loadOptions = async (select, url, placeholder, selected = '') => {
+                select.replaceChildren(new Option('Memuat data...', ''));
+                select.disabled = true;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Gagal memuat data wilayah.');
+                const regions = await response.json();
+                select.replaceChildren(new Option(placeholder, ''));
+                regions.forEach(region => {
+                    const option = new Option(region.name, region.name);
+                    option.dataset.regionId = region.id;
+                    select.add(option);
+                });
+                select.disabled = false;
+                if (selected) {
+                    const match = Array.from(select.options).find(option => option.text === selected);
+                    if (match) select.value = match.value;
+                }
+            };
+
+            const showError = message => {
+                error.textContent = message;
+                error.hidden = !message;
+            };
+
+            const loadRegencies = async (selected = '') => {
+                reset(district, 'Pilih kabupaten / kota terlebih dahulu');
+                reset(village, 'Pilih kecamatan terlebih dahulu');
+                if (!province.value) {
+                    reset(regency, 'Pilih provinsi terlebih dahulu');
+                    return;
+                }
+                await loadOptions(regency, `${api}/regencies/${province.selectedOptions[0].dataset.regionId}.json`,
+                    'Pilih kabupaten / kota', selected);
+            };
+
+            const loadDistricts = async (selected = '') => {
+                reset(village, 'Pilih kecamatan terlebih dahulu');
+                if (!regency.value) {
+                    reset(district, 'Pilih kabupaten / kota terlebih dahulu');
+                    return;
+                }
+                await loadOptions(district, `${api}/districts/${regency.selectedOptions[0].dataset.regionId}.json`,
+                    'Pilih kecamatan', selected);
+            };
+
+            const loadVillages = async (selected = '') => {
+                if (!district.value) {
+                    reset(village, 'Pilih kecamatan terlebih dahulu');
+                    return;
+                }
+                await loadOptions(village, `${api}/villages/${district.selectedOptions[0].dataset.regionId}.json`,
+                    'Pilih desa / kelurahan', selected);
+            };
+
+            province.addEventListener('change', () => {
+                showError('');
+                loadRegencies().catch(() => showError('Data kabupaten/kota gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+            });
+            regency.addEventListener('change', () => {
+                showError('');
+                loadDistricts().catch(() => showError('Data kecamatan gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+            });
+            district.addEventListener('change', () => {
+                showError('');
+                loadVillages().catch(() => showError('Data desa/kelurahan gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+            });
+
+            (async () => {
+                try {
+                    await loadOptions(province, `${api}/provinces.json`, 'Pilih provinsi',
+                        province.dataset.selected);
+                    if (province.value) {
+                        await loadRegencies(regency.dataset.selected);
+                        if (regency.value) {
+                            await loadDistricts(district.dataset.selected);
+                            if (district.value) await loadVillages(village.dataset.selected);
+                        }
+                    }
+                } catch {
+                    showError('Data provinsi gagal dimuat. Periksa koneksi lalu muat ulang halaman.');
+                }
+            })();
+        })();
     </script>
 </body>
 

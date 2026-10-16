@@ -19,14 +19,23 @@ class AuthRegistrationTest extends TestCase
             $response->assertSee(asset('css/app.css'));
         }
 
-        $this->get('/register')->assertSee('domisiliSelect.addEventListener', false);
+        $this->get('/register')
+            ->assertSee('name="domisili"', false)
+            ->assertSee('name="sub_domisili"', false)
+            ->assertSee('name="kecamatan"', false)
+            ->assertSee('name="wilayah_akhir"', false);
     }
 
     public function test_user_can_register_and_is_logged_in(): void
     {
+        $this->get(route('register'))
+            ->assertOk()
+            ->assertSee('name="domisili"', false);
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'phone' => '081234567890',
             'address' => 'Jl. Contoh No. 1',
             'domisili' => 'Bogor',
             'sub_domisili' => 'kabupaten',

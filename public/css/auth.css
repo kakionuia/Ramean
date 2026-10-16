@@ -215,7 +215,8 @@ a {
     pointer-events: none;
 }
 .input-wrap input,
-.input-wrap textarea {
+.input-wrap textarea,
+.input-wrap select {
     width: 100%;
     min-height: 47px;
     border: 1px solid var(--auth-line);
@@ -230,12 +231,17 @@ a {
         border-color 0.16s,
         box-shadow 0.16s;
 }
+.input-wrap select {
+    padding: 0 15px;
+    cursor: pointer;
+}
 .input-wrap input::placeholder,
 .input-wrap textarea::placeholder {
     color: #a9b9b6;
 }
 .input-wrap input:focus,
-.input-wrap textarea:focus {
+.input-wrap textarea:focus,
+.input-wrap select:focus {
     border-color: #168b7d;
     box-shadow: 0 0 0 3px rgba(0, 107, 97, 0.11);
 }

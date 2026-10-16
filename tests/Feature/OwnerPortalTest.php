@@ -50,10 +50,21 @@ class OwnerPortalTest extends TestCase
 
     public function test_owner_registration_creates_laundry_and_login_opens_owner_dashboard(): void
     {
+        $this->get(route('register-owner'))
+            ->assertOk()
+            ->assertSee('name="domisili"', false)
+            ->assertSee('name="sub_domisili"', false)
+            ->assertSee('name="kecamatan"', false)
+            ->assertSee('name="wilayah_akhir"', false);
+
         $registrationResponse = $this->post(route('register.owner'), [
             'name' => 'Laundry Baru Owner',
             'email' => 'new-owner@example.com',
             'phone' => '081234567899',
+            'domisili' => 'Bogor',
+            'sub_domisili' => 'Kota Bogor',
+            'kecamatan' => 'Bogor Tengah',
+            'wilayah_akhir' => 'Babakan',
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'store_name' => 'Laundry Baru',
@@ -63,15 +74,19 @@ class OwnerPortalTest extends TestCase
         ])->assertRedirect(route('login'));
 
         $newOwner = User::where('email', 'new-owner@example.com')->firstOrFail();
+        $this->assertSame('Bogor', $newOwner->domisili);
+        $this->assertSame('Kota Bogor', $newOwner->sub_domisili);
+        $this->assertSame('Bogor Tengah', $newOwner->kecamatan);
+        $this->assertSame('Babakan', $newOwner->wilayah_akhir);
         $this->assertDatabaseHas('laundries', [
             'user_id' => $newOwner->id,
             'store_name' => 'Laundry Baru',
         ]);
 
         $this->post(route('login'), [
-            'email' => 'new-owner@example.com',
+            'identity' => 'new-owner@example.com',
             'password' => 'password123',
-        ])->assertSessionHasErrors('email');
+        ])->assertSessionHasErrors('identity');
         $this->assertGuest();
 
         $admin = User::create([
@@ -87,7 +102,7 @@ class OwnerPortalTest extends TestCase
 
         auth()->logout();
         $this->post(route('login'), [
-            'email' => 'new-owner@example.com',
+            'identity' => 'new-owner@example.com',
             'password' => 'password123',
         ])->assertRedirect(route('owner.dashboard'));
     }

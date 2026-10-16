@@ -26,6 +26,7 @@ class UserStorefrontTest extends TestCase
             'name' => 'Laundry Owner',
             'email' => 'laundry-owner@example.com',
             'address' => 'Jl. Pemilik, Cibinong',
+            'domisili' => 'Bogor',
             'phone' => '081100000001',
             'password' => 'password123',
             'role' => 'owner',
@@ -42,6 +43,7 @@ class UserStorefrontTest extends TestCase
             'name' => 'Pelanggan Test',
             'email' => 'customer@example.com',
             'address' => 'Jl. Pelanggan, Cibinong',
+            'domisili' => 'Bogor',
             'phone' => null,
             'password' => 'password123',
             'role' => 'user',
@@ -111,6 +113,54 @@ class UserStorefrontTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertDontSee('Laundry Belum Disetujui');
+    }
+
+    public function test_customer_can_only_browse_laundries_in_their_domisili(): void
+    {
+        $otherOwner = User::create([
+            'name' => 'Owner Luar Domisili',
+            'email' => 'other-location-owner@example.com',
+            'address' => 'Jl. Lain',
+            'domisili' => 'Depok',
+            'phone' => '081100000097',
+            'password' => 'password123',
+            'role' => 'owner',
+            'status' => 'active',
+        ]);
+        $otherLaundry = Laundry::create([
+            'user_id' => $otherOwner->id,
+            'store_name' => 'Laundry Luar Domisili',
+            'store_phone' => '081100000096',
+            'address' => 'Jl. Lain, Depok',
+        ]);
+        $otherServiceId = DB::table('owner_services')->insertGetId([
+            'laundry_id' => $otherLaundry->id,
+            'name' => 'Promo Luar Domisili',
+            'price' => 7000,
+            'original_price' => 10000,
+            'promo_until' => now()->addDays(7)->toDateString(),
+            'duration_hours' => 24,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->customer)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Laundry Segar')
+            ->assertDontSee('Laundry Luar Domisili')
+            ->assertDontSee('Depok')
+            ->assertDontSee('Promo Luar Domisili');
+
+        $this->get(route('laundry.show', $otherLaundry->id))->assertNotFound();
+
+        $this->post(route('orders.store', $otherLaundry->id), [
+            'service_id' => $otherServiceId,
+            'garment_type' => 'kiloan',
+            'wash_type' => 'cuci',
+            'delivery_method' => 'dropoff',
+        ])->assertNotFound();
     }
 
     public function test_customer_can_order_service_and_see_it_in_profile_history(): void

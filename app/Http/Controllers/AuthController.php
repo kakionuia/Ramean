@@ -26,10 +26,10 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'required|string|max:20|unique:users',
             'address' => 'required|string|max:255',
-            'domisili' => 'nullable|string|max:100',
-            'sub_domisili' => 'nullable|string|max:100',
-            'kecamatan' => 'nullable|string|max:100',
-            'wilayah_akhir' => 'nullable|string|max:100',
+            'domisili' => 'required|string|max:100',
+            'sub_domisili' => 'required|string|max:100',
+            'kecamatan' => 'required|string|max:100',
+            'wilayah_akhir' => 'required|string|max:100',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
