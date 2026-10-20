@@ -20,17 +20,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dialog = document.getElementById('accountDialog');
     const form = document.getElementById('accountForm');
+    const statusSelect = document.getElementById('accountStatus');
+    const customerFields = document.getElementById('customerAccountFields');
+    const ownerFields = document.getElementById('ownerAccountFields');
+    const statusOptions = {
+        user: [['active', 'Aktif'], ['suspended', 'Di-suspend'], ['inactive', 'Nonaktif']],
+        owner: [['pending', 'Menunggu persetujuan'], ['active', 'Disetujui'], ['rejected', 'Ditolak'], ['suspended', 'Di-suspend'], ['inactive', 'Nonaktif']],
+    };
     document.querySelectorAll('.edit-account').forEach((button) => {
         button.addEventListener('click', () => {
+            form.reset();
             form.action = button.dataset.updateUrl;
             document.getElementById('accountName').value = button.dataset.name;
             document.getElementById('accountEmail').value = button.dataset.email;
             document.getElementById('accountPhone').value = button.dataset.phone || '';
             document.getElementById('accountAddress').value = button.dataset.address || '';
-            document.getElementById('accountStatus').value = button.dataset.status;
+            const isOwner = button.dataset.role === 'owner';
+            document.getElementById('accountDialogTitle').textContent = isOwner ? 'Edit akun owner' : 'Edit pengguna';
+            customerFields.hidden = isOwner;
+            ownerFields.hidden = !isOwner;
+            statusSelect.replaceChildren(...statusOptions[isOwner ? 'owner' : 'user'].map(([value, label]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = label;
+                return option;
+            }));
+            statusSelect.value = button.dataset.status;
+            document.getElementById('accountEmailVerified').checked = button.dataset.emailVerified === '1';
+            document.getElementById('accountPhoneVerified').checked = button.dataset.phoneVerified === '1';
+            document.getElementById('accountStoreName').value = button.dataset.storeName || '';
+            document.getElementById('accountStorePhone').value = button.dataset.storePhone || '';
+            document.getElementById('accountOutletAddress').value = button.dataset.outletAddress || '';
+            document.getElementById('accountServiceCity').value = button.dataset.serviceCity || '';
+            document.getElementById('accountServiceDistrict').value = button.dataset.serviceDistrict || '';
+            document.getElementById('accountLatitude').value = button.dataset.latitude || '';
+            document.getElementById('accountLongitude').value = button.dataset.longitude || '';
+            document.getElementById('accountOperationalStatus').value = button.dataset.operationalStatus || 'open';
+            document.getElementById('accountPickupAvailable').checked = button.dataset.pickupAvailable === '1';
+            document.getElementById('accountPickupFee').value = button.dataset.pickupFee || '0';
             dialog.showModal();
         });
     });
+    document.getElementById('accountEmail')?.addEventListener('input', () => { document.getElementById('accountEmailVerified').checked = false; });
+    document.getElementById('accountPhone')?.addEventListener('input', () => { document.getElementById('accountPhoneVerified').checked = false; });
     document.querySelectorAll('[data-close-account]').forEach((button) => {
         button.addEventListener('click', () => dialog?.close());
     });

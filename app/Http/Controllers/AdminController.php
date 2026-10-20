@@ -90,6 +90,32 @@ class AdminController extends Controller
         ]);
     }
 
+    public function ownerApplicationHistory(Request $request)
+    {
+        $filter = $request->query('status', 'all');
+        if (! in_array($filter, ['all', 'approved', 'rejected', 'suspended', 'inactive'], true)) {
+            $filter = 'all';
+        }
+
+        $query = DB::table('users')->leftJoin('laundries', 'laundries.user_id', '=', 'users.id')
+            ->where('users.role', 'owner')
+            ->whereIn('users.status', ['active', 'rejected', 'suspended', 'inactive'])
+            ->select('users.id', 'users.name', 'users.email', 'users.phone', 'users.status', 'users.created_at', 'laundries.store_name', 'laundries.address as business_address', 'laundries.store_phone');
+
+        if ($filter === 'approved') {
+            $query->where('users.status', 'active');
+        } elseif ($filter === 'rejected') {
+            $query->where('users.status', 'rejected');
+        } elseif ($filter === 'suspended' || $filter === 'inactive') {
+            $query->where('users.status', $filter);
+        }
+
+        return $this->page('application-history', [
+            'applicationHistory' => $query->latest('users.created_at')->paginate(15)->withQueryString(),
+            'historyFilter' => $filter,
+        ]);
+    }
+
     public function profile()
     {
         return $this->page('profile');
@@ -169,7 +195,7 @@ class AdminController extends Controller
         $this->authorizeAdmin();
 
         $updated = DB::table('users')->where('id', $user)->where('role', 'owner')->where('status', 'pending')->update([
-            'status' => 'suspended',
+            'status' => 'rejected',
             'updated_at' => now(),
         ]);
         abort_unless($updated, 404);
@@ -179,23 +205,33 @@ class AdminController extends Controller
 
     public function accounts(Request $request)
     {
-        $query = DB::table('users')->whereIn('role', ['user', 'owner']);
+        $query = DB::table('users')
+            ->leftJoin('laundries', 'laundries.user_id', '=', 'users.id')
+            ->leftJoin('user_addresses as primary_address', function ($join) {
+                $join->on('primary_address.user_id', '=', 'users.id')->where('primary_address.is_primary', true);
+            })
+            ->whereIn('users.role', ['user', 'owner'])
+            ->select('users.*', 'primary_address.address as default_address', 'laundries.id as laundry_id',
+                'laundries.store_name', 'laundries.store_phone', 'laundries.address as outlet_address',
+                'laundries.service_city', 'laundries.service_district', 'laundries.latitude', 'laundries.longitude',
+                'laundries.operational_status', 'laundries.pickup_available', 'laundries.pickup_fee');
         $search = trim((string) $request->query('q', ''));
         $role = (string) $request->query('role', '');
 
         if ($search !== '') {
             $query->where(function ($users) use ($search) {
-                $users->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('email', 'like', '%'.$search.'%')
-                    ->orWhere('phone', 'like', '%'.$search.'%');
+                $users->where('users.name', 'like', '%'.$search.'%')
+                    ->orWhere('users.email', 'like', '%'.$search.'%')
+                    ->orWhere('users.phone', 'like', '%'.$search.'%')
+                    ->orWhere('laundries.store_name', 'like', '%'.$search.'%');
             });
         }
         if (in_array($role, ['user', 'owner'], true)) {
-            $query->where('role', $role);
+            $query->where('users.role', $role);
         }
 
         return $this->page('accounts', [
-            'accounts' => $query->latest()->paginate(15)->withQueryString(),
+            'accounts' => $query->latest('users.created_at')->paginate(15)->withQueryString(),
             'search' => $search,
             'roleFilter' => $role,
         ]);
@@ -208,15 +244,67 @@ class AdminController extends Controller
         $account = DB::table('users')->where('id', $user)->whereIn('role', ['user', 'owner'])->first();
         abort_unless($account, 404);
 
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'phone' => ['nullable', 'string', 'max:30', Rule::unique('users', 'phone')->ignore($user)],
-            'address' => ['nullable', 'string', 'max:255'],
-            'status' => ['required', Rule::in(['pending', 'active', 'suspended'])],
-        ]);
+            'new_password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ];
+        if ($account->role === 'owner') {
+            $rules += [
+                'status' => ['required', Rule::in(['pending', 'active', 'rejected', 'suspended', 'inactive'])],
+                'store_name' => ['required', 'string', 'max:255'], 'outlet_address' => ['required', 'string', 'max:2000'],
+                'store_phone' => ['required', 'string', 'max:30'], 'service_city' => ['nullable', 'string', 'max:120'],
+                'service_district' => ['nullable', 'string', 'max:120'], 'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+                'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+                'operational_status' => ['required', Rule::in(['open', 'closed', 'banned'])],
+                'pickup_fee' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            ];
+        } else {
+            $rules += ['status' => ['required', Rule::in(['active', 'suspended', 'inactive'])], 'address' => ['nullable', 'string', 'max:2000']];
+        }
+        $validated = $request->validate($rules);
 
-        DB::table('users')->where('id', $user)->update($validated + ['updated_at' => now()]);
+        DB::transaction(function () use ($request, $validated, $account, $user) {
+            $userUpdates = [
+                'name' => $validated['name'], 'email' => $validated['email'], 'phone' => $validated['phone'] ?? null,
+                'status' => $validated['status'], 'updated_at' => now(),
+                'email_verified_at' => $request->boolean('email_verified') ? ($account->email_verified_at ?: now()) : null,
+                'phone_verified_at' => $request->boolean('phone_verified') ? ($account->phone_verified_at ?: now()) : null,
+            ];
+            if (! empty($validated['new_password'])) $userUpdates['password'] = Hash::make($validated['new_password']);
+
+            if ($account->role === 'user') {
+                $address = $validated['address'] ?? null;
+                $userUpdates['address'] = $address;
+                $primary = DB::table('user_addresses')->where('user_id', $user)->where('is_primary', true)->first();
+                if ($primary) {
+                    DB::table('user_addresses')->where('id', $primary->id)->update(['address' => $address ?? '', 'updated_at' => now()]);
+                } elseif ($address) {
+                    DB::table('user_addresses')->insert([
+                        'user_id' => $user, 'label' => 'Utama', 'recipient_name' => $validated['name'],
+                        'recipient_phone' => $validated['phone'] ?? null, 'address' => $address, 'is_primary' => true,
+                        'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                }
+            } else {
+                $userUpdates['sub_domisili'] = $validated['service_city'] ?? null;
+                $userUpdates['kecamatan'] = $validated['service_district'] ?? null;
+                $outletUpdates = [
+                    'store_name' => $validated['store_name'], 'address' => $validated['outlet_address'],
+                    'store_phone' => $validated['store_phone'], 'service_city' => $validated['service_city'] ?? null,
+                    'service_district' => $validated['service_district'] ?? null, 'latitude' => $validated['latitude'] ?? null,
+                    'longitude' => $validated['longitude'] ?? null, 'operational_status' => $validated['operational_status'],
+                    'pickup_available' => $request->boolean('pickup_available'), 'pickup_fee' => $validated['pickup_fee'], 'updated_at' => now(),
+                ];
+                if (DB::table('laundries')->where('user_id', $user)->exists()) {
+                    DB::table('laundries')->where('user_id', $user)->update($outletUpdates);
+                } else {
+                    DB::table('laundries')->insert($outletUpdates + ['user_id' => $user, 'created_at' => now()]);
+                }
+            }
+            DB::table('users')->where('id', $user)->update($userUpdates);
+        });
 
         return back()->with('success', 'Data akun berhasil diperbarui.');
     }
@@ -226,10 +314,12 @@ class AdminController extends Controller
         $this->authorizeAdmin();
 
         abort_if($user === Auth::id(), 403, 'Admin tidak dapat menghapus akunnya sendiri.');
-        $deleted = DB::table('users')->where('id', $user)->whereIn('role', ['user', 'owner'])->delete();
-        abort_unless($deleted, 404);
+        $updated = DB::table('users')->where('id', $user)->whereIn('role', ['user', 'owner'])->update([
+            'status' => 'inactive', 'updated_at' => now(),
+        ]);
+        abort_unless($updated, 404);
 
-        return back()->with('success', 'Akun dan data laundry terkait berhasil dihapus.');
+        return back()->with('success', 'Akun dinonaktifkan. Riwayat transaksi dan data terkait tetap tersimpan.');
     }
 
     public function storeOwnerAccount(Request $request)
@@ -372,7 +462,7 @@ class AdminController extends Controller
             }
         };
         $applyFilters($query);
-        $summary = (clone $query)->selectRaw(
+        $summary = (clone $query)->select([])->selectRaw(
             "COUNT(*) as transaction_count, COALESCE(SUM(total_amount), 0) as gross_total, COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END), 0) as paid_total, COALESCE(SUM(CASE WHEN payment_status = 'unpaid' THEN total_amount ELSE 0 END), 0) as unpaid_total"
         )->first();
 

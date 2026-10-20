@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class OwnerController extends Controller
@@ -84,17 +85,17 @@ class OwnerController extends Controller
     public function updateDeliveryStatus(Request $request, int $transaction)
     {
         $laundry = $this->laundry();
-        $validated = $request->validate(['delivery_status' => ['required', 'in:picked_up,received,returned']]);
+        $validated = $request->validate(['delivery_status' => ['required', 'in:picked_up,received,ready']]);
 
         DB::transaction(function () use ($laundry, $transaction, $validated) {
             $order = DB::table('laundry_transactions')->where('id', $transaction)
                 ->where('laundry_id', $laundry->id)->lockForUpdate()->first();
             abort_unless($order, 404);
 
-            if ($validated['delivery_status'] === 'returned') {
+            if ($validated['delivery_status'] === 'ready') {
                 abort_unless($order->status === 'completed' && $order->payment_status === 'paid' && $order->delivery_status === 'received', 422);
                 DB::table('laundry_transactions')->where('id', $order->id)->update([
-                    'delivery_status' => 'returned',
+                    'delivery_status' => 'ready',
                     'updated_at' => now(),
                 ]);
 
@@ -114,7 +115,9 @@ class OwnerController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Status penerimaan cucian berhasil diperbarui.');
+        return back()->with('success', $validated['delivery_status'] === 'ready'
+            ? 'Pelanggan sudah diberi tahu bahwa cucian siap diambil.'
+            : 'Status penerimaan cucian berhasil diperbarui.');
     }
 
     public function weighTransaction(Request $request, int $transaction)
@@ -147,6 +150,60 @@ class OwnerController extends Controller
         });
 
         return back()->with('success', 'Berat tercatat dan tagihan akhir sudah dihitung. User sekarang dapat membayar.');
+    }
+
+    public function confirmPendingPayment(int $transaction)
+    {
+        $laundry = $this->laundry();
+
+        $paymentMethod = DB::transaction(function () use ($laundry, $transaction) {
+            $order = DB::table('laundry_transactions')
+                ->where('id', $transaction)
+                ->where('laundry_id', $laundry->id)
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless(
+                $order
+                    && $order->status === 'pending'
+                    && $order->weighed_at
+                    && in_array($order->payment_method, ['cash', 'wallet'], true)
+                    && $order->payment_status === 'unpaid',
+                422,
+                'Pembayaran ini tidak dapat dikonfirmasi.'
+            );
+
+            if ($order->payment_method === 'wallet') {
+                $wallet = DB::table('user_wallets')
+                    ->where('user_id', $order->user_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $wallet || $wallet->balance < $order->total_amount) {
+                    throw ValidationException::withMessages([
+                        'payment' => 'Saldo pelanggan sudah tidak mencukupi. Minta pelanggan memilih metode pembayaran lain.',
+                    ]);
+                }
+
+                DB::table('user_wallets')->where('id', $wallet->id)->decrement(
+                    'balance',
+                    $order->total_amount,
+                    ['updated_at' => now()]
+                );
+            }
+
+            DB::table('laundry_transactions')->where('id', $order->id)->update([
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $order->payment_method;
+        });
+
+        return back()->with('success', $paymentMethod === 'wallet'
+            ? 'Pembayaran saldo dikonfirmasi dan saldo pelanggan sudah dipotong.'
+            : 'Pembayaran tunai dikonfirmasi dan tercatat di invoice.');
     }
 
     public function updateTransactionStatus(Request $request, int $transaction)
@@ -198,6 +255,8 @@ class OwnerController extends Controller
         $laundry = $this->laundry();
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'category' => ['required', Rule::in(['Kiloan', 'Satuan', 'Sepatu/Tas', 'Bedding'])],
+            'unit' => ['required', Rule::in(['/Kg', '/Pcs', '/Pasang'])],
             'description' => ['nullable', 'string', 'max:1000'],
             'price' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'duration_hours' => ['required', 'integer', 'min:1', 'max:720'],
@@ -221,6 +280,8 @@ class OwnerController extends Controller
         $laundry = $this->laundry();
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'category' => ['required', Rule::in(['Kiloan', 'Satuan', 'Sepatu/Tas', 'Bedding'])],
+            'unit' => ['required', Rule::in(['/Kg', '/Pcs', '/Pasang'])],
             'description' => ['nullable', 'string', 'max:1000'],
             'price' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'duration_hours' => ['required', 'integer', 'min:1', 'max:720'],
@@ -298,14 +359,6 @@ class OwnerController extends Controller
         ]);
 
         return back()->with('success', 'Balasan ulasan berhasil disimpan.');
-    }
-
-    public function deleteReview(int $review)
-    {
-        $deleted = DB::table('laundry_reviews')->where('laundry_id', $this->laundry()->id)->where('id', $review)->delete();
-        abort_unless($deleted, 404);
-
-        return back()->with('success', 'Ulasan berhasil dihapus.');
     }
 
     public function chat(Request $request)

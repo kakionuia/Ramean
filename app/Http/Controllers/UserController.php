@@ -34,7 +34,11 @@ class UserController extends Controller
         $recentOrders = (clone $orders)->limit(5)->get();
         $activeOrder = (clone $orders)->whereIn('laundry_transactions.status', ['pending', 'processing'])->first()
             ?? (clone $orders)->where('laundry_transactions.status', 'completed')->first();
-        $notifications = (clone $orders)->limit(3)->get();
+        $notifications = (clone $orders)->reorder()
+            ->orderByRaw("CASE WHEN laundry_transactions.delivery_status = 'ready' THEN 0 ELSE 1 END")
+            ->latest('laundry_transactions.created_at')
+            ->limit(3)->get();
+        $readyOrders = (clone $orders)->where('laundry_transactions.delivery_status', 'ready')->limit(5)->get();
 
         $homePromo = DB::table('owner_services')
             ->join('laundries', 'laundries.id', '=', 'owner_services.laundry_id')
@@ -62,7 +66,7 @@ class UserController extends Controller
             ->latest('owner_services.updated_at')
             ->first();
 
-        return view('home', compact('recentOrders', 'activeOrder', 'orderStats', 'notifications', 'homePromo'));
+        return view('home', compact('recentOrders', 'activeOrder', 'orderStats', 'notifications', 'readyOrders', 'homePromo'));
     }
 
     public function discover(Request $request)
@@ -83,6 +87,10 @@ class UserController extends Controller
             ->whereNotNull('owners.domisili')
             ->where('owners.domisili', Auth::user()->domisili)
             ->select('laundries.*', 'owners.kecamatan', 'owners.domisili')
+            ->where('laundries.operational_status', '!=', 'banned')
+            ->select('laundries.*')
+            ->selectRaw('COALESCE(laundries.service_district, owners.kecamatan) as kecamatan')
+            ->selectRaw('COALESCE(laundries.service_city, owners.sub_domisili, owners.domisili) as domisili')
             ->get()
             ->map(function ($laundry) {
                 $laundry->services = DB::table('owner_services')
@@ -94,7 +102,7 @@ class UserController extends Controller
                 $laundry->rating_average = (float) (clone $reviews)->avg('rating');
                 $laundry->rating_count = (int) (clone $reviews)->count();
                 $laundry->starting_price = $laundry->services->min('price');
-                $laundry->pickup_available = (float) ($laundry->pickup_fee ?? 0) > 0;
+                $laundry->pickup_available = (bool) $laundry->pickup_available;
 
                 return $laundry;
             })
@@ -120,12 +128,11 @@ class UserController extends Controller
 
         $laundry = DB::table('laundries')
             ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
-            ->select('laundries.*', 'owners.name as owner_name', 'owners.kecamatan', 'owners.domisili')
+            ->select('laundries.*', 'owners.name as owner_name')
             ->where('laundries.id', $laundry)
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
-            ->whereNotNull('owners.domisili')
-            ->where('owners.domisili', Auth::user()->domisili)
+            ->where('laundries.operational_status', '!=', 'banned')
             ->first();
         abort_unless($laundry, 404);
 
@@ -163,11 +170,15 @@ class UserController extends Controller
             ->where('laundries.id', $laundry)
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
-            ->whereNotNull('owners.domisili')
-            ->where('owners.domisili', Auth::user()->domisili)
             ->select('laundries.*')
             ->first();
         abort_unless($laundryRecord, 404);
+        if ($laundryRecord->operational_status !== 'open') {
+            throw ValidationException::withMessages(['service_id' => 'Outlet sedang tutup sementara dan belum menerima pesanan.']);
+        }
+        if ($validated['delivery_method'] === 'pickup' && ! $laundryRecord->pickup_available) {
+            throw ValidationException::withMessages(['delivery_method' => 'Outlet ini tidak menyediakan layanan antar-jemput.']);
+        }
 
         $washLabels = [
             'cuci' => 'Cuci',
@@ -354,7 +365,85 @@ class UserController extends Controller
             'order' => $order,
             'messages' => $messages,
             'walletBalance' => (float) ($wallet->balance ?? 0),
+            'review' => DB::table('laundry_reviews')->where('transaction_id', $order->id)->where('user_id', Auth::id())->first(),
         ]);
+    }
+
+    public function confirmOrderReceived(int $transaction)
+    {
+        $this->customer();
+
+        DB::transaction(function () use ($transaction) {
+            $order = DB::table('laundry_transactions')->where('id', $transaction)
+                ->where('user_id', Auth::id())->lockForUpdate()->first();
+            abort_unless($order, 404);
+            abort_unless($order->status === 'completed' && $order->payment_status === 'paid' && $order->delivery_status === 'ready', 422);
+
+            DB::table('laundry_transactions')->where('id', $order->id)->update([
+                'delivery_status' => 'returned',
+                'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('orders.show', $transaction)->with('success', 'Terima kasih sudah mengonfirmasi penerimaan cucian.');
+    }
+
+    public function storeOrderReview(Request $request, int $transaction)
+    {
+        $this->customer();
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        DB::transaction(function () use ($transaction, $validated) {
+            $order = DB::table('laundry_transactions')->where('id', $transaction)
+                ->where('user_id', Auth::id())->lockForUpdate()->first();
+            abort_unless($order, 404);
+            abort_unless($order->status === 'completed' && $order->payment_status === 'paid' && $order->delivery_status === 'returned', 422);
+            abort_unless(! DB::table('laundry_reviews')->where('transaction_id', $order->id)->exists(), 422, 'Ulasan untuk pesanan ini sudah pernah dikirim.');
+
+            DB::table('laundry_reviews')->insert([
+                'laundry_id' => $order->laundry_id,
+                'user_id' => Auth::id(),
+                'transaction_id' => $order->id,
+                'customer_name' => Auth::user()->name,
+                'rating' => $validated['rating'],
+                'comment' => trim($validated['comment'] ?? ''),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('orders.show', $transaction)->with('success', 'Terima kasih! Rating dan ulasanmu sudah terkirim.');
+    }
+
+    public function updateOrderReview(Request $request, int $transaction)
+    {
+        $this->customer();
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        DB::transaction(function () use ($transaction, $validated) {
+            $order = DB::table('laundry_transactions')->where('id', $transaction)
+                ->where('user_id', Auth::id())->lockForUpdate()->first();
+            abort_unless($order, 404);
+            abort_unless($order->status === 'completed' && $order->payment_status === 'paid' && $order->delivery_status === 'returned', 422);
+
+            $review = DB::table('laundry_reviews')->where('transaction_id', $order->id)
+                ->where('user_id', Auth::id());
+            abort_unless($review->exists(), 404);
+
+            $review->update([
+                'rating' => $validated['rating'],
+                'comment' => trim($validated['comment'] ?? ''),
+                'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('orders.show', $transaction)->with('success', 'Perubahan rating dan ulasan berhasil disimpan.');
     }
 
     private function ownedOrder(int $transaction): object
@@ -459,7 +548,7 @@ class UserController extends Controller
     public function payOrder(Request $request, int $transaction)
     {
         $this->customer();
-        $validated = $request->validate(['payment_method' => ['required', 'in:wallet,qris']]);
+        $validated = $request->validate(['payment_method' => ['required', 'in:wallet,qris,cash']]);
 
         DB::transaction(function () use ($transaction, $validated) {
             $order = DB::table('laundry_transactions')
@@ -479,25 +568,30 @@ class UserController extends Controller
                 return;
             }
 
-            $wallet = DB::table('user_wallets')->where('user_id', Auth::id())->lockForUpdate()->first();
-            if (! $wallet || $wallet->balance < $order->total_amount) {
-                throw ValidationException::withMessages([
-                    'payment_method' => 'Saldo tidak cukup. Silakan top-up atau pilih QRIS.',
-                ]);
-            }
+            if (in_array($validated['payment_method'], ['cash', 'wallet'], true)) {
+                if ($validated['payment_method'] === 'wallet') {
+                    $wallet = DB::table('user_wallets')->where('user_id', Auth::id())->lockForUpdate()->first();
+                    if (! $wallet || $wallet->balance < $order->total_amount) {
+                        throw ValidationException::withMessages([
+                            'payment_method' => 'Saldo tidak cukup. Silakan top-up atau pilih QRIS atau tunai di outlet.',
+                        ]);
+                    }
+                }
 
-            DB::table('user_wallets')->where('id', $wallet->id)->decrement('balance', $order->total_amount, ['updated_at' => now()]);
-            DB::table('laundry_transactions')->where('id', $order->id)->update([
-                'payment_method' => 'wallet',
-                'payment_reference' => null,
-                'payment_status' => 'paid',
-                'paid_at' => now(),
-                'updated_at' => now(),
-            ]);
+                DB::table('laundry_transactions')->where('id', $order->id)->update([
+                    'payment_method' => $validated['payment_method'],
+                    'payment_reference' => null,
+                    'updated_at' => now(),
+                ]);
+
+                return;
+            }
         });
 
-        return redirect()->route('orders.show', $transaction)->with('success', $validated['payment_method'] === 'wallet'
-            ? 'Pembayaran dari saldo berhasil. Laundry dapat mulai mengerjakan cucian.'
-            : 'Kode QRIS simulasi dibuat. Selesaikan pembayaran lalu konfirmasi.');
+        return redirect()->route('orders.show', $transaction)->with('success', match ($validated['payment_method']) {
+            'wallet' => 'Permintaan pembayaran saldo dikirim. Saldo dipotong setelah owner mengonfirmasi.',
+            'cash' => 'Metode tunai dipilih. Bayar langsung ke laundry; owner akan mencatat pembayaran di website.',
+            default => 'Kode QRIS simulasi dibuat. Selesaikan pembayaran lalu konfirmasi.',
+        });
     }
 }

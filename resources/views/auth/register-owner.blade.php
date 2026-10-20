@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f5f7ff">
-    <title>Daftar Mitra Laundry · Washly</title>
+    <meta name="theme-color" content="#08796f">
+    <title>Daftar Mitra Laundry - Washly</title>
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
     <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
@@ -19,7 +19,7 @@
             </svg>
             Kembali ke Login
         </a>
-        <div class="auth-brand">Laundry</div>
+        <div class="auth-brand"><img src="{{ asset('images/washly-logo.png') }}" alt="">Washly</div>
     </header>
 
     <main class="auth-main auth-main-register">

@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ ucfirst($section) }} · {{ $laundry->store_name }}</title>
+    <title>{{ ucfirst($section) }} - {{ $laundry->store_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -39,7 +39,7 @@
 <div class="owner-shell">
     <aside class="sidebar" id="ownerSidebar">
         <a class="brand" href="{{ route('owner.dashboard') }}">
-            <span class="brand-mark">L</span>
+            <img class="brand-mark" src="{{ asset('images/washly-logo.png') }}" alt="">
             <span><strong>{{ $laundry->store_name }}</strong><small>OWNER WORKSPACE</small></span>
         </a>
         <div class="sidebar-label">MENU UTAMA</div>
@@ -59,7 +59,7 @@
                 <span class="avatar">{{ strtoupper(substr($owner->name, 0, 1)) }}</span>
                 <span><strong>{{ $owner->name }}</strong><small>Pemilik laundry</small></span>
             </div>
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="{{ route('owner.logout') }}" method="POST">
                 @csrf
                 <button class="logout-button" type="submit"><span aria-hidden="true">↪</span> Keluar</button>
             </form>
@@ -207,8 +207,7 @@
                                             <td>{{ \Carbon\Carbon::parse($transaction->created_at)->format('d M Y, H:i') }}
                                             </td>
                                             <td><a class="text-link"
-                                                    href="{{ route('owner.transactions.show', $transaction->id) }}">Detail
-                                                    →</a></td>
+                                                    href="{{ route('owner.transactions.show', $transaction->id) }}">Detail</a></td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -264,7 +263,7 @@
                                         {{ number_format($order->service_rate, 0, ',', '.') }} / kg</strong></div>
                                 <div><small>PENYERAHAN</small><strong>{{ $order->delivery_method === 'pickup' ? 'Antar-jemput' : 'Drop-off' }}
                                         ·
-                                        {{ $order->delivery_status === 'received' ? 'Diterima laundry' : ($order->delivery_status === 'picked_up' ? 'Sudah dijemput' : 'Menunggu') }}</strong>
+                                        {{ $order->delivery_status === 'ready' ? 'Siap diambil' : ($order->delivery_status === 'returned' ? 'Diterima pelanggan' : ($order->delivery_status === 'received' ? 'Diterima laundry' : ($order->delivery_status === 'picked_up' ? 'Sudah dijemput' : 'Menunggu'))) }}</strong>
                                 </div>
                                 <div><small>WAKTU
                                         PESAN</small><strong>{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y, H:i') }}</strong>
@@ -326,15 +325,20 @@
                             <p class="eyebrow">STATUS PEMBAYARAN</p>
                             <h2>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</h2><span
                                 class="badge badge-{{ $order->payment_status }}">{{ ucfirst($order->payment_status) }}
-                                · {{ strtoupper($order->payment_method ?: '—') }}</span>
+                                · {{ match ($order->payment_method) { 'cash' => 'TUNAI', 'wallet' => 'SALDO WASHLY', 'qris' => 'QRIS', default => '—' } }}</span>
                             @if (!$order->weighed_at)
                                 <p class="unpaid-owner-note">Tagihan belum dibuat. Terima dan timbang cucian untuk
                                     menghitung biaya final.</p>
                             @elseif ($order->payment_status !== 'paid')
-                            <p class="unpaid-owner-note">Menunggu user membayar tagihan hasil timbang.</p>@else<p
+                            <p class="unpaid-owner-note">{{ $order->payment_method === 'cash' ? 'Konfirmasi setelah uang tunai diterima dari pelanggan.' : ($order->payment_method === 'wallet' ? 'Pelanggan mengajukan pembayaran saldo. Konfirmasi untuk memotong saldo dan menandai invoice lunas.' : 'Menunggu pelanggan membayar tagihan hasil timbang.') }}</p>@else<p
                                     class="paid-owner-note">Pembayaran
                                     diterima{{ $order->paid_at ? ' · ' . \Carbon\Carbon::parse($order->paid_at)->format('d M Y, H:i') : '' }}
                                 </p>
+                            @endif
+                            @if ($order->weighed_at && $order->status === 'pending' && in_array($order->payment_method, ['cash', 'wallet'], true) && $order->payment_status === 'unpaid')
+                                <form action="{{ route('owner.transactions.confirm-payment', $order->id) }}" method="POST" data-owner-confirm="{{ $order->payment_method === 'cash' ? 'Konfirmasi bahwa uang tunai sudah diterima?' : 'Konfirmasi pembayaran saldo? Saldo pelanggan akan dipotong.' }}">
+                                    @csrf<button class="button button-dark status-action" type="submit">{{ $order->payment_method === 'cash' ? 'Konfirmasi tunai diterima' : 'Konfirmasi pembayaran saldo' }}</button>
+                                </form>
                             @endif
                             @if ($order->weighed_at && $order->status === 'pending' && $order->payment_status === 'paid')
                                 <form action="{{ route('owner.transactions.status', $order->id) }}" method="POST">
@@ -350,11 +354,12 @@
                             @if ($order->status === 'completed' && $order->payment_status === 'paid' && $order->delivery_status === 'received')
                                 <form action="{{ route('owner.transactions.delivery-status', $order->id) }}"
                                     method="POST" class="return-garment-form">@csrf<input type="hidden"
-                                        name="delivery_status" value="returned"><button
-                                        class="button button-dark status-action" type="submit">Tandai sudah
-                                        dikembalikan / siap diambil</button></form>
+                                        name="delivery_status" value="ready"><button
+                                        class="button button-dark status-action" type="submit">Siap diambil</button></form>
+                            @elseif ($order->delivery_status === 'ready')
+                                <p class="paid-owner-note">Pelanggan sudah diberi tahu. Menunggu cucian diambil.</p>
                             @elseif ($order->delivery_status === 'returned')
-                                <p class="paid-owner-note">Baju sudah dikembalikan / siap diambil pelanggan.</p>
+                                <p class="paid-owner-note">Pelanggan sudah mengonfirmasi cucian diterima.</p>
                             @endif
                         </aside>
                     </div>
@@ -372,6 +377,7 @@
                                 <thead>
                                     <tr>
                                         <th>Nama layanan</th>
+                                        <th>Kategori</th>
                                         <th>Deskripsi</th>
                                         <th>Durasi</th>
                                         <th>Harga / promo</th>
@@ -383,9 +389,10 @@
                                     @forelse ($services as $service)
                                         <tr>
                                             <td class="cell-strong">{{ $service->name }}</td>
+                                            <td>{{ $service->category }}</td>
                                             <td>{{ $service->description ?: '—' }}</td>
                                             <td>{{ $service->duration_hours }} jam</td>
-                                            <td>Rp {{ number_format($service->price, 0, ',', '.') }} @if ($service->original_price && $service->original_price > $service->price)
+                                            <td>Rp {{ number_format($service->price, 0, ',', '.') }} {{ $service->unit }} @if ($service->original_price && $service->original_price > $service->price)
                                                     <span
                                                         class="badge badge-pending">{{ $service->promo_label ?: 'Promo' }}</span>
                                                 @endif
@@ -396,6 +403,7 @@
                                             <td class="actions"><button class="icon-button edit-service"
                                                     type="button" aria-label="Edit layanan"
                                                     data-id="{{ $service->id }}" data-name="{{ $service->name }}"
+                                                    data-category="{{ $service->category }}" data-unit="{{ $service->unit }}"
                                                     data-description="{{ $service->description }}"
                                                     data-price="{{ $service->price }}"
                                                     data-duration="{{ $service->duration_hours }}"
@@ -412,7 +420,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="empty-cell">Belum ada produk atau jasa.
+                                            <td colspan="7" class="empty-cell">Belum ada produk atau jasa.
                                                 Tambahkan layanan pertama Anda.</td>
                                         </tr>
                                     @endforelse
@@ -433,6 +441,7 @@
                             </div>
                             <label>Nama layanan<input name="name" id="serviceName" required maxlength="120"
                                     placeholder="Contoh: Cuci kering kiloan"></label>
+                            <div class="form-grid"><label>Kategori<select name="category" id="serviceCategory" required><option value="Kiloan">Kiloan</option><option value="Satuan">Satuan</option><option value="Sepatu/Tas">Sepatu/Tas</option><option value="Bedding">Bedding</option></select></label><label>Satuan harga<select name="unit" id="serviceUnit" required><option value="/Kg">Per kilogram (/Kg)</option><option value="/Pcs">Per item (/Pcs)</option><option value="/Pasang">Per pasang (/Pasang)</option></select></label></div>
                             <label>Deskripsi
                                 <textarea name="description" id="serviceDescription" rows="3" placeholder="Ringkasan layanan"></textarea>
                             </label>
@@ -547,14 +556,27 @@
                         @endif
                     </section>
                 </div>
-                <section class="panel"><div class="panel-heading"><div><h2>Riwayat pengeluaran</h2><p>Catatan biaya terbaru.</p></div></div><div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Keperluan</th><th>Kategori</th><th>Jumlah</th></tr></thead><tbody>@forelse ($expenseRows as $expense)<tr><td>{{ \Carbon\Carbon::parse($expense->spent_at)->format('d M Y') }}</td><td class="cell-strong">{{ $expense->description }}</td><td>{{ $expense->category }}</td><td class="amount-negative">− Rp {{ number_format($expense->amount, 0, ',', '.') }}</td></tr>@empty<tr><td colspan="4" class="empty-cell">Belum ada pengeluaran dicatat.</td></tr>@endforelse</tbody></table></div>@if ($expenseRows->hasPages())<div class="pagination">{{ $expenseRows->links() }}</div>@endif</section>
-
             @elseif ($section === 'reviews')
                 <section class="review-list">
                     @forelse ($reviews as $review)
-                        <article class="panel review-item"><div class="review-top"><div><h2>{{ $review->customer_name }}</h2><p>{{ \Carbon\Carbon::parse($review->created_at)->format('d M Y, H:i') }}</p></div><span class="rating">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }} <b>{{ $review->rating }}/5</b></span></div><p class="review-comment">{{ $review->comment }}</p>
-                            @if ($review->owner_reply)<div class="owner-reply"><small>Balasan Anda</small><p>{{ $review->owner_reply }}</p></div>@else<form class="reply-form" action="{{ route('owner.reviews.reply', $review->id) }}" method="POST">@csrf<textarea name="owner_reply" required maxlength="2000" rows="2" placeholder="Tulis balasan untuk pelanggan..."></textarea><button class="button button-dark" type="submit">Kirim balasan</button></form>@endif
-                            <form action="{{ route('owner.reviews.delete', $review->id) }}" method="POST" class="delete-confirm review-delete">@csrf @method('DELETE')<button class="text-link danger-text" type="submit">Hapus ulasan</button></form>
+                        <article class="panel review-item"><div class="review-top"><div><h2>{{ $review->customer_name }}</h2><p>{{ \Carbon\Carbon::parse($review->created_at)->format('d M Y, H:i') }}</p></div><span class="rating">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }} <b>{{ $review->rating }}/5</b></span></div><p class="review-comment">{{ $review->comment ?: 'Pelanggan memberi rating tanpa komentar.' }}</p>
+                            @if ($review->owner_reply)
+                                <div class="owner-reply"><small>Balasan Anda</small><p>{{ $review->owner_reply }}</p></div>
+                                <details class="owner-reply-edit">
+                                    <summary>Edit balasan</summary>
+                                    <form class="reply-form" action="{{ route('owner.reviews.reply', $review->id) }}" method="POST">
+                                        @csrf
+                                        <textarea name="owner_reply" required maxlength="2000" rows="2">{{ $review->owner_reply }}</textarea>
+                                        <button class="button button-dark" type="submit">Simpan perubahan</button>
+                                    </form>
+                                </details>
+                            @else
+                                <form class="reply-form" action="{{ route('owner.reviews.reply', $review->id) }}" method="POST">
+                                    @csrf
+                                    <textarea name="owner_reply" required maxlength="2000" rows="2" placeholder="Tulis balasan untuk pelanggan..."></textarea>
+                                    <button class="button button-dark" type="submit">Kirim balasan</button>
+                                </form>
+                            @endif
                         </article>
                     @empty
                         <section class="panel empty-panel"><span class="empty-symbol">☆</span><h2>Belum ada ulasan</h2><p>Ulasan pelanggan akan muncul di halaman ini.</p></section>

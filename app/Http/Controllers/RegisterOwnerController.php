@@ -74,7 +74,7 @@ class RegisterOwnerController extends Controller
             return back()->with('error', 'Terjadi kesalahan saat pendaftaran. Silakan coba kembali.')->withInput();
         }
 
-        Auth::login($user);
+        Auth::guard('owner')->login($user);
         $request->session()->regenerate();
 
         return redirect()->route('owner.dashboard')->with('success', 'Pendaftaran mitra berhasil dikirim.');

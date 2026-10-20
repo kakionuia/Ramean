@@ -1630,3 +1630,202 @@ input:focus, textarea:focus, select:focus { border-color: #5e9d7c; box-shadow: 0
     .rating { font-size: 12px; }
     .schedule-row { grid-template-columns: 56px minmax(72px, 1fr) 24px minmax(72px, 1fr); }
 }
+
+/* Washly palette and shared surfaces for every owner workspace section. */
+.owner-shell {
+    --ink: #24342d;
+    --muted: #718078;
+    --line: #e2e9e4;
+    --surface: #fff;
+    --canvas: #f7f8f5;
+    --forest: #08796f;
+    --forest-deep: #06443e;
+    --mint: #c9f7ef;
+    --orange: #08796f;
+    --orange-soft: #eaf5f1;
+}
+.owner-shell .sidebar { background: #06443e; }
+.owner-shell .brand-mark {
+    display: block;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 0;
+    object-fit: contain;
+    background: transparent;
+}
+.owner-shell .main-area,
+.owner-shell { background: #f7f8f5; }
+.owner-shell,
+.owner-shell button,
+.owner-shell input,
+.owner-shell textarea,
+.owner-shell select { font-family: 'DM Sans', Arial, sans-serif; }
+.owner-shell h1,
+.owner-shell h2,
+.owner-shell h3,
+.owner-shell h4,
+.owner-shell .final-weight-invoice > strong,
+.owner-shell .empty-panel h2,
+.owner-shell .chat-empty h2,
+.owner-shell .contact-heading h2 { font-family: 'DM Sans', Arial, sans-serif; }
+.owner-shell { --blue-soft: #e8f4f6; --pink-soft: #edf5ef; }
+.owner-shell .topbar { border-color: #e2e9e4; }
+.owner-shell .topbar h1,
+.owner-shell .welcome-row h2,
+.owner-shell .panel-heading h2,
+.owner-shell .schedule-heading h2,
+.owner-shell .dialog-heading h2,
+.owner-shell .stat-card strong { color: #24342d; }
+.owner-shell .button-dark { background: #08796f; }
+.owner-shell .button-dark:hover { background: #00645d; }
+.owner-shell .button-light { border-color: #dfe8e2; color: #08796f; }
+.owner-shell .text-link,
+.owner-shell .icon-button { color: #08796f; }
+.owner-shell .stat-card,
+.owner-shell .panel,
+.owner-shell .settings-card,
+.owner-shell .finance-card,
+.owner-shell .chat-panel,
+.owner-shell .transaction-card {
+    border-color: #e2e9e4;
+    border-radius: 14px;
+}
+.owner-shell .icon-green { color: #08796f; background: #e7f5f1; }
+.owner-shell .icon-orange { color: #08796f; background: #eaf5f1; }
+.owner-shell .icon-blue { color: #387e88; background: #e8f4f6; }
+.owner-shell .icon-pink { color: #668d76; background: #edf5ef; }
+.owner-shell .message-owner { background: #08796f; }
+.owner-shell .owner-reply { border-left-color: #08796f; }
+.owner-shell .nav-link.active { box-shadow: inset 3px 0 #c9f7ef; }
+.owner-shell input:focus,
+.owner-shell textarea:focus,
+.owner-shell select:focus { border-color: #69b7ad; box-shadow: 0 0 0 3px #e8f4f1; }
+
+/* Owner transaction detail layout. */
+.owner-shell .back-to-list { display: inline-flex; align-items: center; margin: 0 0 14px; font-size: 13px; }
+.owner-shell .transaction-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .75fr);
+    align-items: start;
+    gap: 20px;
+}
+.owner-shell .transaction-detail-panel,
+.owner-shell .owner-payment-status { min-width: 0; padding: 0; }
+.owner-shell .transaction-detail-panel > .panel-heading {
+    align-items: flex-start;
+    padding: 24px 26px 20px;
+}
+.owner-shell .transaction-detail-panel .panel-heading h2 { margin: 3px 0 5px; font-size: 24px; font-weight: 700; }
+.owner-shell .transaction-detail-panel .panel-heading p:not(.eyebrow) { margin: 0; color: #718078; font-size: 13px; line-height: 1.6; }
+.owner-shell .transaction-detail-panel .panel-heading > .badge { margin-top: 8px; padding: 7px 11px; font-size: 11px; white-space: nowrap; }
+.owner-shell .owner-order-progress {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 4px 26px 22px;
+}
+.owner-shell .owner-progress-step {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    justify-items: start;
+    gap: 9px;
+    min-height: 58px;
+    padding: 10px;
+    border: 1px solid #e4ebe6;
+    border-radius: 12px;
+    color: #718078;
+    background: #fff;
+    text-align: left;
+}
+.owner-shell .owner-progress-step > span {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 1px solid #dce7e1;
+    border-radius: 50%;
+    color: #718078;
+    background: #fff;
+    font-size: 12px;
+}
+.owner-shell .owner-progress-step strong { font-size: 12px; line-height: 1.35; }
+.owner-shell .owner-progress-step.is-done { border-color: #cde5df; color: #08796f; background: #f1faf8; }
+.owner-shell .owner-progress-step.is-done > span { border-color: #08796f; color: #fff; background: #08796f; }
+.owner-shell .owner-order-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 22px;
+    margin: 0 26px 22px;
+    border-top: 1px solid #e9efeb;
+}
+.owner-shell .owner-order-details > div { min-width: 0; padding: 13px 0; border-bottom: 1px solid #e9efeb; }
+.owner-shell .owner-order-details small { display: block; margin-bottom: 5px; color: #85928b; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.owner-shell .owner-order-details strong { display: block; color: #35463e; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.owner-shell .delivery-action-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 0 26px 24px;
+    padding: 17px;
+    border-color: #dcece7;
+    border-radius: 12px;
+    background: #f4faf8;
+}
+.owner-shell .delivery-action-panel .eyebrow { margin-bottom: 5px; }
+.owner-shell .delivery-action-panel > div > strong { color: #43574e; font-size: 13px; }
+.owner-shell .delivery-action-panel form { margin: 0; }
+.owner-shell .weigh-form { margin: 0 26px 24px; padding: 18px; border-color: #dcece7; border-radius: 12px; background: #f7faf8; }
+.owner-shell .weigh-form label { font-size: 12px; }
+.owner-shell .weigh-form input { min-height: 45px; border-radius: 9px; font: inherit; font-size: 14px; }
+.owner-shell .weigh-math { gap: 8px; font-size: 12px; }
+.owner-shell .weigh-math strong { font-size: 13px; }
+.owner-shell .weigh-form > .button { justify-self: start; min-height: 44px; border-radius: 9px; }
+.owner-shell .final-weight-invoice { margin: 0 26px 24px; padding: 18px; border-radius: 12px; background: #f4faf8; }
+.owner-shell .final-weight-invoice > strong { color: #24342d; font-size: 26px; }
+.owner-shell .final-weight-invoice > div { font-size: 12px; }
+.owner-shell .final-weight-invoice > .final-total b { font-size: 14px; }
+.owner-shell .owner-payment-status { padding: 24px; }
+.owner-shell .owner-payment-status h2 { margin: 7px 0 15px; font-size: 30px; font-weight: 750; letter-spacing: -.04em; }
+.owner-shell .owner-payment-status > .badge { min-height: 26px; padding: 6px 10px; font-size: 11px; }
+.owner-shell .unpaid-owner-note,
+.owner-shell .paid-owner-note,
+.owner-shell .terminal-status { margin: 16px 0 0; font-size: 13px; line-height: 1.65; }
+.owner-shell .status-action { width: 100%; min-height: 44px; margin-top: 20px; border-radius: 9px; }
+.owner-shell .return-garment-form { margin-top: 18px; }
+
+/* Keep review actions compact and consistent with the owner workspace buttons. */
+.owner-shell .review-item .reply-form { align-items: flex-end; gap: 12px; }
+.owner-shell .review-item .reply-form textarea { min-width: 0; min-height: 56px; border: 1px solid #dfe8e2; border-radius: 9px; font: inherit; font-size: 13px; }
+.owner-shell .review-item .reply-form .button { min-height: 42px; flex: 0 0 auto; padding: 0 18px; border-radius: 9px; font-size: 13px; line-height: 1.2; }
+.owner-shell .owner-reply-edit { margin-top: 10px; }
+.owner-shell .owner-reply-edit summary { width: max-content; color: #08796f; font-size: 12px; font-weight: 700; cursor: pointer; }
+.owner-shell .owner-reply-edit[open] summary { margin-bottom: 10px; }
+
+@media (max-width: 1100px) {
+    .owner-shell .transaction-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+    .owner-shell .transaction-detail-panel > .panel-heading { padding: 20px 18px 16px; }
+    .owner-shell .owner-order-progress { grid-template-columns: 1fr; padding: 0 18px 18px; }
+    .owner-shell .owner-order-details { grid-template-columns: 1fr; margin: 0 18px 18px; }
+    .owner-shell .delivery-action-panel,
+    .owner-shell .weigh-form,
+    .owner-shell .final-weight-invoice { margin-right: 18px; margin-left: 18px; }
+    .owner-shell .delivery-action-panel { align-items: stretch; flex-direction: column; }
+    .owner-shell .delivery-action-panel .button { width: 100%; }
+    .owner-shell .owner-payment-status { padding: 20px 18px; }
+}
+
+/* Approval status screen follows the same Washly surface colors. */
+.pending-page {
+    background: #f7f8f5;
+    color: #24342d;
+    font-family: 'DM Sans', 'Segoe UI', Arial, sans-serif;
+}
+.pending-page .pending-brand { color: #08796f; }
+.pending-page .pending-card { border-color: #e2e9e4; border-radius: 18px; }
+.pending-page .pending-actions button { background: #08796f; }
+.pending-page .pending-actions a { color: #08796f; background: #eaf5f1; }

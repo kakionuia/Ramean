@@ -52,7 +52,7 @@
                     </div>
                 @endif
 
-                <form class="auth-form" action="{{ route('login') }}" method="POST">
+                <form class="auth-form" action="{{ route('login') }}" method="POST" autocomplete="off">
                     @csrf
                     <div class="field">
                         <label for="identity">Email atau Nomor WhatsApp</label>
@@ -63,8 +63,8 @@
                                 <path d="M16 12v1.5a2 2 0 0 0 4 0V12a8 8 0 1 0-3 6.2" />
                                 <circle cx="12" cy="12" r="3" />
                             </svg>
-                            <input id="identity" name="identity" type="text" value="{{ old('identity') }}"
-                                placeholder="Contoh: budi@mail.com atau 081234567890" autocomplete="username" required
+                            <input id="identity" name="identity" type="text"
+                                placeholder="Contoh: budi@mail.com atau 081234567890" autocomplete="off" required
                                 autofocus>
                         </div>
                         <p class="field-note">Gunakan kontak yang terdaftar saat penjemputan cucian.</p>
@@ -78,7 +78,7 @@
                                 <path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3" />
                             </svg>
                             <input id="password" name="password" type="password" placeholder="Masukkan kata sandi"
-                                autocomplete="current-password" required>
+                                autocomplete="new-password" required>
                             <button class="input-action" type="button" data-toggle-password="password"
                                 aria-label="Tampilkan password"><svg viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
