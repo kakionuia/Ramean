@@ -431,6 +431,10 @@
 .application-whatsapp:hover { text-decoration: underline; }
 .application-no-document { color: #64727a; font-size: 10px; }
 .owner-account-note { margin: -5px 0 2px; color: #64727a; font-size: 12px; line-height: 1.5; }
+.account-role-fields[hidden] { display: none !important; }
+.password-reset { padding: 12px 0; color: #53635b; }
+.password-reset summary { cursor: pointer; font-size: 12px; font-weight: 700; }
+.password-reset .form-grid { padding-top: 12px; }
 .admin-shell .button-dark { background: #006b61; }
 .admin-shell .button-dark:hover { background: #00574f; }
 .admin-shell .text-link, .admin-shell .icon-button { color: #006b61; }

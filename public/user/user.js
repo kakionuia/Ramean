@@ -74,7 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('[data-payment-confirm]').forEach((form) => {
         form.addEventListener('submit', (event) => {
-            if (!window.confirm('Konfirmasi pembayaran QRIS simulasi? Tidak ada uang nyata yang diproses.'))
+            const message = form.dataset.confirmMessage
+                || 'Konfirmasi pembayaran QRIS simulasi? Tidak ada uang nyata yang diproses.';
+            if (!window.confirm(message))
                 event.preventDefault();
         });
     });

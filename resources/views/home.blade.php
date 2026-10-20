@@ -168,6 +168,48 @@
         @media(max-width:900px){body.customer-page .lower-grid{grid-template-columns:1fr}body.customer-page .tips-card{order:2}}
         @media(max-width:800px){body.customer-page .dash-greeting{align-items:flex-start;flex-direction:column}body.customer-page .hero-art{right:28px;width:210px;max-width:30%}}
         @media(max-width:560px){body.customer-page .dash-greeting{min-height:320px;padding:25px 22px}body.customer-page .dash-greeting .dash-cta{margin-top:8px}body.customer-page .dash-greeting:after{right:-95px;bottom:-125px;width:260px;height:260px}body.customer-page .hero-art{right:4px;bottom:-15px;width:145px;max-width:39%;opacity:.84}body.customer-page .order-steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        /* Keep the customer dashboard calm, consistent, and free of desktop table overflow. */
+        body.customer-page{--dash-ink:#20332b;--dash-muted:#75827b;--dash-teal:#337b70;--dash-line:#dfe9e3;--dash-bg:#f6f8f5;--dash-lilac:#edf5f0;background:#f6f8f5}
+        body.customer-page .dash-nav{border-color:#e4ebe6}
+        body.customer-page .dash-tabs{background:#edf5f0}
+        body.customer-page .dash-tabs a.active{background:#337b70}
+        body.customer-page .dash-greeting{background:linear-gradient(118deg,#275d4e 0%,#337b70 58%,#4b9688 100%);box-shadow:0 14px 30px #275d4e1c}
+        body.customer-page .dash-greeting .dash-cta{color:#285f53}
+        body.customer-page .order-focus,body.customer-page .orders-wrap,body.customer-page .stat-card{border-color:#e1e9e3;box-shadow:0 6px 18px #20332b08}
+        body.customer-page .dash-stats{gap:16px;margin-top:28px}
+        body.customer-page .stat-card{border-radius:18px}
+        body.customer-page .stat-card:first-child,body.customer-page .stat-card:nth-child(2),body.customer-page .stat-card:nth-child(3){border-color:#e1e9e3}
+        body.customer-page .stat-card:nth-child(2) strong,body.customer-page .stat-card:nth-child(2) .stat-icon{color:#337b70}
+        body.customer-page .stat-card:nth-child(2) .stat-icon{background:#edf5f0}
+        body.customer-page .stat-card:nth-child(3) .stat-icon{background:#e2f2eb}
+        body.customer-page .lower-grid{grid-template-columns:minmax(0,1fr) 290px;gap:20px;margin-top:34px}
+        body.customer-page .recent-head{align-items:center;gap:16px;margin-bottom:16px}
+        body.customer-page .recent-head h2{font-size:23px}
+        body.customer-page .orders-wrap{overflow:hidden;border-radius:16px}
+        body.customer-page .orders-table{table-layout:fixed;white-space:normal}
+        body.customer-page .orders-table th{padding:13px 12px;background:#edf5f0;font-size:11px}
+        body.customer-page .orders-table td{padding:14px 12px;font-size:13px;overflow-wrap:anywhere}
+        body.customer-page .orders-table th:nth-child(1){width:16%}
+        body.customer-page .orders-table th:nth-child(2){width:16%}
+        body.customer-page .orders-table th:nth-child(3){width:25%}
+        body.customer-page .orders-table th:nth-child(4){width:14%}
+        body.customer-page .orders-table th:nth-child(5){width:15%}
+        body.customer-page .orders-table th:nth-child(6){width:14%}
+        body.customer-page .order-number{white-space:normal}
+        body.customer-page .service-pill{display:inline-block;background:#edf5f0;line-height:1.4}
+        body.customer-page .table-status{padding:6px 9px;color:#337b70;background:#e5f2eb;font-size:12px}
+        body.customer-page .detail-button{display:inline-block;padding:8px 10px;background:#edf5f0;line-height:1.3}
+        body.customer-page .tips-card{padding:22px;border-color:#e1e9e3;border-radius:17px;background:#fff;box-shadow:0 6px 18px #20332b08}
+        body.customer-page .tips-label{color:#337b70;background:#e8f3ed}
+        body.customer-page .support-banner{margin-top:30px;background:#edf5f0;box-shadow:none}
+        body.customer-page .ready-pickup-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:20px;padding:18px 22px;border:1px solid #cfe5d7;border-radius:16px;background:#edf7ef}
+        body.customer-page .ready-pickup-banner strong{display:block;color:#285f43;font-size:16px}
+        body.customer-page .ready-pickup-banner p{margin:4px 0 0;color:#64756a;font-size:14px}
+        body.customer-page .ready-pickup-banner a{flex:none;padding:10px 14px;border-radius:10px;color:#fff;background:#337b70;font-weight:700}
+        @media(max-width:1100px){body.customer-page .lower-grid{grid-template-columns:minmax(0,1fr) 260px}}
+        @media(max-width:900px){body.customer-page .lower-grid{grid-template-columns:1fr;gap:18px}body.customer-page .tips-card{order:0}}
+        @media(max-width:700px){body.customer-page .orders-wrap{overflow-x:auto}body.customer-page .orders-table{min-width:680px;table-layout:auto}body.customer-page .orders-table th,body.customer-page .orders-table td{white-space:normal}}
+        @media(max-width:560px){body.customer-page .dash-main{padding-top:22px}body.customer-page .dash-stats{grid-template-columns:1fr;gap:10px;margin-top:20px}body.customer-page .lower-grid{margin-top:28px}body.customer-page .recent-head{align-items:flex-start;flex-direction:column}body.customer-page .support-banner{margin-top:24px;padding:20px}}
     </style>
     <link rel="stylesheet" href="{{ asset('css/site-motion.css') }}">
 </head>
@@ -187,7 +229,7 @@
                     <div class="notification-popover" id="notificationPopover" hidden>
                         <strong>Aktivitas pesanan</strong>
                         @forelse ($notifications as $notification)
-                            <a href="{{ route('orders.show', $notification->id) }}"><span>{{ $notification->service_name }}</span><small>{{ ucfirst($notification->status) }} · {{ \Carbon\Carbon::parse($notification->created_at)->diffForHumans() }}</small></a>
+                            <a href="{{ route('orders.show', $notification->id) }}"><span>{{ $notification->service_name }}</span><small>{{ $notification->delivery_status === 'ready' ? 'Siap diambil' : ($notification->delivery_status === 'returned' ? 'Diterima pelanggan' : ucfirst($notification->status)) }} · {{ \Carbon\Carbon::parse($notification->updated_at ?? $notification->created_at)->diffForHumans() }}</small></a>
                         @empty<p>Belum ada notifikasi.</p>@endforelse
                     </div>
                 </div>
@@ -203,6 +245,10 @@
             <div class="hero-art" aria-hidden="true"><svg viewBox="0 0 320 250" role="presentation"><ellipse cx="169" cy="226" rx="110" ry="15" fill="#005a67" opacity=".22"/><path d="M220 78c34 12 53 45 49 81l-9 47h-74l4-69c1-31 7-52 30-59Z" fill="#f2fbf7"/><path d="M226 83c27 15 28 45 22 69l-9 45h-30l5-63c2-22 0-38 12-51Z" fill="#d8f1ec"/><path d="M209 125c-22 13-36 17-58 15l-37-4c-9-1-12 9-4 13l37 17c19 9 39 8 56-1l24-14" fill="#ffd2a2" stroke="#eaa66f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M120 148c-20-7-39-22-51-36-6-7-17 0-12 9 11 21 28 39 50 50l28 13" fill="#ffd2a2" stroke="#eaa66f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M100 170h111l-11 48h-91l-9-48Z" fill="#efa76b"/><path d="M109 175h94l-8 36h-79l-7-36Z" fill="#f7c489"/><path d="M111 171c4-14 13-20 25-17 9-13 23-13 32-3 12-6 23 1 25 20" fill="#fff"/><path d="M131 155c1-11 6-18 15-18 8 0 13 8 12 18m11-3c3-11 10-15 17-12 7 3 8 9 5 17" fill="#82d3c5"/><path d="M96 171h119" stroke="#d78950" stroke-width="6" stroke-linecap="round"/><path d="M128 218v7m53-7v7" stroke="#eaa66f" stroke-width="6" stroke-linecap="round"/><circle cx="166" cy="61" r="33" fill="#ffd2a2"/><path d="M134 60c-4-24 10-42 31-43 21-1 34 14 34 35-9-4-16-11-20-19-11 13-25 20-45 21Z" fill="#263445"/><path d="M144 68c4 3 8 3 12 0m15 0c4 3 8 3 12 0" stroke="#5a3930" stroke-width="3" stroke-linecap="round"/><path d="M157 79c6 5 13 5 19 0" stroke="#c86855" stroke-width="3" stroke-linecap="round"/><path d="M145 95c-10 7-20 16-25 31l-6 24 33 5 13-34 27 33 25-16-24-34c-12-15-30-18-43-9Z" fill="#fffbeb"/><circle cx="87" cy="62" r="5" fill="#a3f2dc"/><circle cx="258" cy="43" r="7" fill="#ffe08f"/><path d="m67 83 7 6-7 6-7-6 7-6Z" fill="#d1fbf2"/></svg></div>
             <a class="dash-cta" href="{{ route('laundries.discover') }}"><span aria-hidden="true">⊕</span> Pesan Laundry</a>
         </section>
+        @if ($readyOrders->isNotEmpty())
+            @php($readyOrder = $readyOrders->first())
+            <aside class="ready-pickup-banner"><div><strong>Cucianmu siap diambil</strong><p>{{ $readyOrder->store_name }} sudah menyelesaikan pesananmu.</p></div><a href="{{ route('orders.show', $readyOrder->id) }}">Lihat pesanan</a></aside>
+        @endif
         <section class="order-focus" aria-label="Pesanan yang sedang berjalan">
             @if ($activeOrder)
                 @php
@@ -223,7 +269,7 @@
         </section>
         <div class="lower-grid">
         <section class="recent-section" id="pesan">
-            <div class="recent-head"><div><h2>Pesanan Terakhir</h2><p>Daftar transaksi dan pembaruan status cucian Anda.</p></div><a class="text-link" href="{{ route('profile', ['tab' => 'orders']) }}">Lihat Semua Pesanan →</a></div>
+            <div class="recent-head"><div><h2>Pesanan Terakhir</h2><p>Daftar transaksi dan pembaruan status cucian Anda.</p></div></div>
             <div class="orders-wrap"><table class="orders-table"><thead><tr><th>NOMOR PESANAN</th><th>TANGGAL</th><th>LAYANAN</th><th>TOTAL HARGA</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody>
                 @forelse ($recentOrders as $order)
                     <tr><td class="order-number">▤ #WSH-{{ str_pad((string) $order->id, 6, '0', STR_PAD_LEFT) }}</td><td>{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y, H:i') }}</td><td><span class="service-pill">{{ $order->service_name }}</span></td><td class="price-cell">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td><td><span class="table-status {{ $order->status }}">{{ ucfirst($order->status) }}</span></td><td><a class="detail-button" href="{{ route('orders.show', $order->id) }}">Lihat Detail ›</a></td></tr>
