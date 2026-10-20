@@ -23,7 +23,12 @@ class AuthRegistrationTest extends TestCase
             ->assertSee('name="domisili"', false)
             ->assertSee('name="sub_domisili"', false)
             ->assertSee('name="kecamatan"', false)
-            ->assertSee('name="wilayah_akhir"', false);
+            ->assertSee('name="wilayah_akhir"', false)
+            ->assertSee('data-toggle-password="password"', false)
+            ->assertSee('data-toggle-password="password_confirmation"', false);
+
+        $this->get('/login')
+            ->assertSee('data-toggle-password="password"', false);
     }
 
     public function test_user_can_register_and_is_logged_in(): void

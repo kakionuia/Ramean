@@ -72,7 +72,9 @@ class UserStorefrontTest extends TestCase
             ->assertOk()
             ->assertSee('Laundry Segar')
             ->assertSee('Hemat 20%')
-            ->assertSee('Cuci Kiloan');
+            ->assertSee('Cuci Kiloan')
+            ->assertSee(route('laundries.discover'))
+            ->assertSee(route('laundry.show', $this->laundry->id).'?service='.$this->serviceId.'#booking-form');
 
         $this->get(route('dashboard', ['q' => 'Cibinong']))
             ->assertOk()
@@ -82,6 +84,10 @@ class UserStorefrontTest extends TestCase
             ->assertOk()
             ->assertSee('Detail cucianmu')
             ->assertSee('Pakaian kiloan');
+
+        $this->get(route('laundry.show', $this->laundry->id).'?service='.$this->serviceId)
+            ->assertOk()
+            ->assertSee('selected', false);
     }
 
     public function test_owner_cannot_open_customer_home(): void
@@ -142,7 +148,7 @@ class UserStorefrontTest extends TestCase
             'duration_hours' => 24,
             'is_active' => true,
             'created_at' => now(),
-            'updated_at' => now(),
+            'updated_at' => now()->addMinute(),
         ]);
 
         $this->actingAs($this->customer)
@@ -152,6 +158,11 @@ class UserStorefrontTest extends TestCase
             ->assertDontSee('Laundry Luar Domisili')
             ->assertDontSee('Depok')
             ->assertDontSee('Promo Luar Domisili');
+
+        $this->get(route('laundries.discover'))
+            ->assertOk()
+            ->assertSee('Laundry Segar')
+            ->assertDontSee('Laundry Luar Domisili');
 
         $this->get(route('laundry.show', $otherLaundry->id))->assertNotFound();
 

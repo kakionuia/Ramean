@@ -41,6 +41,8 @@ class UserController extends Controller
             ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
+            ->whereNotNull('owners.domisili')
+            ->where('owners.domisili', Auth::user()->domisili)
             ->where('owner_services.is_active', true)
             ->whereNotNull('owner_services.original_price')
             ->whereColumn('owner_services.original_price', '>', 'owner_services.price')
@@ -78,6 +80,8 @@ class UserController extends Controller
             ->join('users as owners', 'owners.id', '=', 'laundries.user_id')
             ->where('owners.role', 'owner')
             ->where('owners.status', 'active')
+            ->whereNotNull('owners.domisili')
+            ->where('owners.domisili', Auth::user()->domisili)
             ->select('laundries.*', 'owners.kecamatan', 'owners.domisili')
             ->get()
             ->map(function ($laundry) {

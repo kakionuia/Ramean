@@ -20,7 +20,40 @@
             @forelse ($laundries as $laundry)
                 <article class="discover-card">
                     <img src="{{ $laundry->logo ? asset('storage/' . $laundry->logo) : asset('images/washly-logo.png') }}" alt="{{ $laundry->store_name }}">
-                    <div class="discover-content"><small>{{ $laundry->kecamatan ?: $laundry->domisili ?: 'Laundry Washly' }}</small><h2>{{ $laundry->store_name }}</h2><p>{{ $laundry->address }}</p><div class="discover-badges"><span>Antar sendiri</span>@if($laundry->pickup_available)<span>Antar-jemput tersedia</span>@endif<span class="rating">★ {{ $laundry->rating_count ? number_format($laundry->rating_average, 1) : 'Belum ada rating' }}@if($laundry->rating_count) ({{ $laundry->rating_count }})@endif</span></div><div class="discover-services">@forelse ($laundry->services->take(3) as $service)<span>{{ $service->name }}</span>@empty<span>Lihat layanan tersedia</span>@endforelse</div><div class="discover-bottom"><strong>@if ($laundry->starting_price !== null)Mulai Rp {{ number_format($laundry->starting_price, 0, ',', '.') }}@else Lihat layanan@endif</strong><a href="{{ route('laundry.show', $laundry->id) }}">Pilih Laundry</a></div></div>
+                    <div class="discover-content">
+                        <small>{{ $laundry->kecamatan ?: $laundry->domisili ?: 'Laundry Washly' }}</small>
+                        <h2>{{ $laundry->store_name }}</h2>
+                        <p>{{ $laundry->address }}</p>
+                        <div class="discover-badges">
+                            <span>Antar sendiri</span>
+                            @if ($laundry->pickup_available)
+                                <span>Antar-jemput tersedia</span>
+                            @endif
+                            <span class="rating">
+                                ★ {{ $laundry->rating_count ? number_format($laundry->rating_average, 1) : 'Belum ada rating' }}
+                                @if ($laundry->rating_count)
+                                    ({{ $laundry->rating_count }})
+                                @endif
+                            </span>
+                        </div>
+                        <div class="discover-services">
+                            @forelse ($laundry->services->take(3) as $service)
+                                <span>{{ $service->name }}</span>
+                            @empty
+                                <span>Lihat layanan tersedia</span>
+                            @endforelse
+                        </div>
+                        <div class="discover-bottom">
+                            <strong>
+                                @if ($laundry->starting_price !== null)
+                                    Mulai Rp {{ number_format($laundry->starting_price, 0, ',', '.') }}
+                                @else
+                                    Lihat layanan
+                                @endif
+                            </strong>
+                            <a href="{{ route('laundry.show', $laundry->id) }}">Pilih Laundry</a>
+                        </div>
+                    </div>
                 </article>
             @empty
                 <div class="discover-empty"><h2>Belum ada laundry tersedia</h2><p>Laundry aktif akan muncul di sini setelah mendaftar.</p><a href="{{ route('dashboard') }}">Kembali ke dashboard</a></div>
