@@ -76,9 +76,9 @@ class AuthController extends Controller
             $phoneCandidates = array_filter(array_unique([
                 $identity,
                 $digits,
-                '+' . $digits,
-                str_starts_with($digits, '0') ? '62' . substr($digits, 1) : null,
-                str_starts_with($digits, '62') ? '0' . substr($digits, 2) : null,
+                '+'.$digits,
+                str_starts_with($digits, '0') ? '62'.substr($digits, 1) : null,
+                str_starts_with($digits, '62') ? '0'.substr($digits, 2) : null,
             ]));
             $userQuery = User::query()->whereIn('phone', $phoneCandidates ?: [$identity]);
         }

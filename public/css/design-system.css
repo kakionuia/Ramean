@@ -1,0 +1,305 @@
+:root {
+    color-scheme: light;
+    --washly-ink: #2c352e;
+    --washly-muted: #69746b;
+    --washly-canvas: #f6f6f1;
+    --washly-surface: #fff;
+    --washly-line: #e4e7df;
+    --washly-brand: #3b6049;
+    --washly-brand-hover: #304f3c;
+    --washly-brand-soft: #eaf0e8;
+    --washly-accent: #b97558;
+    --washly-radius: 12px;
+    --ink: var(--washly-ink);
+    --muted: var(--washly-muted);
+    --teal: var(--washly-brand);
+    --forest: var(--washly-brand);
+    --forest-deep: #34483b;
+    --canvas: var(--washly-canvas);
+    --line: var(--washly-line);
+    --mint: var(--washly-brand-soft);
+    --user-ink: var(--washly-ink);
+    --user-muted: var(--washly-muted);
+    --user-line: var(--washly-line);
+    --user-canvas: var(--washly-canvas);
+    --user-green: var(--washly-brand);
+    --user-green-dark: var(--washly-brand-hover);
+    --user-green-soft: var(--washly-brand-soft);
+    --user-coral: var(--washly-accent);
+    --auth-ink: var(--washly-ink);
+    --auth-muted: var(--washly-muted);
+    --auth-teal: var(--washly-brand);
+    --auth-deep: var(--washly-brand);
+    --auth-mint: var(--washly-brand-soft);
+    --auth-line: var(--washly-line);
+    --dash-ink: var(--washly-ink);
+    --dash-muted: var(--washly-muted);
+    --dash-teal: var(--washly-brand);
+    --dash-bg: var(--washly-canvas);
+    --admin-accent: var(--washly-brand);
+}
+
+body.customer-page,
+body.auth-page,
+body.admin-body,
+body.owner-page,
+body.pending-page {
+    color: var(--washly-ink);
+    background: var(--washly-canvas);
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    line-height: 1.55;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+:focus-visible {
+    outline: 3px solid #7f9c7f;
+    outline-offset: 2px;
+}
+
+/* Keep the customer pages calm and consistent with the account workspaces. */
+.customer-page .profile-nav,
+.customer-page .dash-nav {
+    border-color: var(--washly-line);
+    background: var(--washly-surface);
+    box-shadow: none;
+}
+
+.customer-page .customer-brand,
+.customer-page .dash-brand,
+.customer-page .text-link,
+.customer-page .nav-icon-button {
+    color: var(--washly-brand);
+}
+
+.customer-page .customer-brand {
+    font-family: inherit;
+}
+
+.customer-page .brand-symbol,
+.customer-page .user-avatar,
+.customer-page .dash-account .user-avatar {
+    background: var(--washly-brand-soft);
+    color: var(--washly-brand);
+}
+
+.customer-page .laundry-card,
+.customer-page .order-detail-main-card,
+.customer-page .order-focus,
+.customer-page .stat-card,
+.customer-page .tips-card,
+.customer-page .support-banner {
+    border: 1px solid var(--washly-line);
+    border-radius: var(--washly-radius);
+    background: var(--washly-surface);
+    box-shadow: 0 2px 8px rgb(41 51 42 / 4%);
+}
+
+.customer-page .primary-button,
+.customer-page .empty-cta,
+.customer-page .dash-cta {
+    border-radius: 8px;
+    background: var(--washly-brand);
+    box-shadow: none;
+}
+
+.customer-page input:not([type="checkbox"]):not([type="radio"]),
+.customer-page select,
+.customer-page textarea,
+.owner-page .owner-shell input:not([type="checkbox"]):not([type="radio"]),
+.owner-page .owner-shell select,
+.owner-page .owner-shell textarea,
+.admin-body .admin-shell input:not([type="checkbox"]):not([type="radio"]),
+.admin-body .admin-shell select,
+.admin-body .admin-shell textarea {
+    border-color: var(--washly-line);
+    border-radius: 8px;
+}
+
+.customer-page .stat-card:hover,
+.owner-page .owner-shell .stat-card:hover,
+.admin-body .admin-shell .stat-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgb(41 51 42 / 4%);
+}
+
+.customer-page .primary-button:hover,
+.customer-page .empty-cta:hover,
+.customer-page .dash-cta:hover {
+    background: var(--washly-brand-hover);
+}
+
+.customer-page .member-pill,
+.customer-page .tips-label {
+    border-radius: 6px;
+    background: var(--washly-brand-soft);
+    color: var(--washly-brand);
+}
+
+/* The owner and admin workspaces share the same navigation and surface language. */
+body.owner-page .owner-shell,
+body.owner-page .owner-shell .main-area,
+.admin-body .owner-shell,
+.admin-body .owner-shell .main-area {
+    background: var(--washly-canvas);
+}
+
+body.owner-page .owner-shell,
+body.owner-page .owner-shell *,
+.admin-body .admin-shell,
+.admin-body .admin-shell * {
+    font-family: inherit;
+}
+
+.owner-page .owner-shell .sidebar,
+.admin-body .admin-shell .sidebar {
+    background: #34483b;
+    box-shadow: none;
+}
+
+.owner-page .owner-shell .nav-link.active,
+.admin-body .admin-shell .nav-link.active {
+    border-radius: 8px;
+    background: rgb(255 255 255 / 10%);
+    box-shadow: inset 3px 0 #b8cfb8;
+}
+
+.owner-page .owner-shell .main-area,
+.admin-body .admin-shell .main-area {
+    color: var(--washly-ink);
+}
+
+.owner-page .owner-shell .topbar,
+.admin-body .admin-shell .topbar {
+    border-color: var(--washly-line);
+    background: var(--washly-surface);
+}
+
+.owner-page .owner-shell .topbar h1,
+.admin-body .admin-shell .topbar h1,
+.owner-page .owner-shell .panel-heading h2,
+.admin-body .admin-shell .panel-heading h2,
+.owner-page .owner-shell .welcome-row h2,
+.admin-body .admin-shell .admin-welcome h2 {
+    color: var(--washly-ink);
+    font-family: inherit;
+    letter-spacing: normal;
+}
+
+.owner-page .owner-shell .stat-card,
+.owner-page .owner-shell .panel,
+.owner-page .owner-shell .settings-card,
+.owner-page .owner-shell .finance-card,
+.owner-page .owner-shell .chat-panel,
+.owner-page .owner-shell .transaction-card,
+.admin-body .admin-shell .stat-card,
+.admin-body .admin-shell .panel {
+    border-color: var(--washly-line);
+    border-radius: var(--washly-radius);
+    background: var(--washly-surface);
+    box-shadow: 0 2px 8px rgb(41 51 42 / 4%);
+}
+
+.owner-page .owner-shell .button-dark,
+.admin-body .admin-shell .button-dark,
+.owner-page .owner-shell .logout-button {
+    border-radius: 8px;
+    background: var(--washly-brand);
+}
+
+.owner-page .owner-shell .button-dark:hover,
+.admin-body .admin-shell .button-dark:hover,
+.owner-page .owner-shell .logout-button:hover {
+    background: var(--washly-brand-hover);
+}
+
+.owner-page .owner-shell .text-link,
+.admin-body .admin-shell .text-link {
+    color: var(--washly-brand);
+}
+
+/* Use the same restrained surfaces on sign-in and public pages. */
+.auth-page {
+    background: var(--washly-canvas);
+}
+
+.auth-page .auth-card {
+    border: 1px solid var(--washly-line);
+    border-radius: var(--washly-radius);
+    background: var(--washly-surface);
+    box-shadow: 0 4px 18px rgb(41 51 42 / 6%);
+}
+
+.auth-page .auth-heading h1,
+.auth-page .auth-brand,
+.auth-page .back-home:hover {
+    color: var(--washly-brand);
+}
+
+.auth-page .auth-submit,
+.pending-page .pending-actions button {
+    border-radius: 8px;
+    background: var(--washly-brand);
+    box-shadow: none;
+}
+
+.pending-page .pending-card {
+    border-color: var(--washly-line);
+    border-radius: var(--washly-radius);
+    box-shadow: 0 4px 18px rgb(41 51 42 / 6%);
+}
+
+.pending-page .pending-actions a {
+    border-radius: 8px;
+    background: var(--washly-brand-soft);
+    color: var(--washly-brand);
+}
+
+.welcome-page {
+    color: var(--washly-ink);
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+.welcome-page .btn-primary,
+.welcome-page .register {
+    border-radius: 8px;
+    background: var(--washly-brand);
+}
+
+.welcome-page .btn-primary:hover,
+.welcome-page .register:hover {
+    background: var(--washly-brand-hover);
+}
+
+.welcome-page h1,
+.welcome-page h2,
+.welcome-page h3,
+.welcome-page .brand {
+    font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

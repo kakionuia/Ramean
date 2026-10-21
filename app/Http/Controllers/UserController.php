@@ -107,7 +107,10 @@ class UserController extends Controller
                 return $laundry;
             })
             ->filter(function ($laundry) use ($area) {
-                if ($area === '') return true;
+                if ($area === '') {
+                    return true;
+                }
+
                 return str_contains(mb_strtolower(implode(' ', array_filter([
                     $laundry->store_name, $laundry->address, $laundry->kecamatan, $laundry->domisili,
                 ]))), mb_strtolower($area));
@@ -287,7 +290,7 @@ class UserController extends Controller
             'area' => ['nullable', 'string', 'max:160'],
         ]);
         $userId = Auth::id();
-        $isPrimary = $request->boolean('is_primary') || !DB::table('user_addresses')->where('user_id', $userId)->exists();
+        $isPrimary = $request->boolean('is_primary') || ! DB::table('user_addresses')->where('user_id', $userId)->exists();
 
         DB::transaction(function () use ($validated, $userId, $isPrimary) {
             if ($isPrimary) {

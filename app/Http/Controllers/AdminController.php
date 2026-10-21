@@ -55,8 +55,8 @@ class AdminController extends Controller
                 'count' => $day['count'],
             ];
         });
-        $trendLine = $trendPoints->map(fn ($point) => $point['x'] . ',' . $point['y'])->implode(' ');
-        $trendArea = 'M' . $trendPoints->first()['x'] . ',84 L' . $trendLine . ' L' . $trendPoints->last()['x'] . ',84 Z';
+        $trendLine = $trendPoints->map(fn ($point) => $point['x'].','.$point['y'])->implode(' ');
+        $trendArea = 'M'.$trendPoints->first()['x'].',84 L'.$trendLine.' L'.$trendPoints->last()['x'].',84 Z';
 
         return $this->page('dashboard', [
             'stats' => [
@@ -136,7 +136,7 @@ class AdminController extends Controller
         $admin->name = $validated['name'];
         $admin->email = $validated['email'];
         $admin->phone = $validated['phone'] ?? null;
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $admin->password = $validated['password'];
         }
         $admin->save();
@@ -174,7 +174,7 @@ class AdminController extends Controller
 
         $extension = pathinfo($path, PATHINFO_EXTENSION) ?: 'file';
 
-        return Storage::disk('local')->download($path, 'dokumen-mitra-' . $user . '.' . $extension);
+        return Storage::disk('local')->download($path, 'dokumen-mitra-'.$user.'.'.$extension);
     }
 
     public function approveOwner(int $user)
@@ -272,7 +272,9 @@ class AdminController extends Controller
                 'email_verified_at' => $request->boolean('email_verified') ? ($account->email_verified_at ?: now()) : null,
                 'phone_verified_at' => $request->boolean('phone_verified') ? ($account->phone_verified_at ?: now()) : null,
             ];
-            if (! empty($validated['new_password'])) $userUpdates['password'] = Hash::make($validated['new_password']);
+            if (! empty($validated['new_password'])) {
+                $userUpdates['password'] = Hash::make($validated['new_password']);
+            }
 
             if ($account->role === 'user') {
                 $address = $validated['address'] ?? null;
@@ -445,19 +447,19 @@ class AdminController extends Controller
             ->join('laundries', 'laundries.id', '=', 'laundry_transactions.laundry_id')
             ->select('laundry_transactions.*', 'laundries.store_name');
         $applyFilters = function ($builder) use ($filters) {
-            if (!empty($filters['from'])) {
+            if (! empty($filters['from'])) {
                 $builder->whereDate('laundry_transactions.created_at', '>=', $filters['from']);
             }
-            if (!empty($filters['until'])) {
+            if (! empty($filters['until'])) {
                 $builder->whereDate('laundry_transactions.created_at', '<=', $filters['until']);
             }
-            if (!empty($filters['status'])) {
+            if (! empty($filters['status'])) {
                 $builder->where('laundry_transactions.status', $filters['status']);
             }
-            if (!empty($filters['payment_status'])) {
+            if (! empty($filters['payment_status'])) {
                 $builder->where('laundry_transactions.payment_status', $filters['payment_status']);
             }
-            if (!empty($filters['laundry_id'])) {
+            if (! empty($filters['laundry_id'])) {
                 $builder->where('laundry_transactions.laundry_id', $filters['laundry_id']);
             }
         };
